@@ -33,9 +33,35 @@ if ! pg_isready -q; then
     fi
 fi
 
-# Create database and user
+# Drop existing database if it exists and recreate with proper permissions
 echo "🗄️  Setting up database..."
-sudo -u postgres psql -f scripts/init-db.sql
+sudo -u postgres psql << 'EOF'
+-- Drop database if it exists
+DROP DATABASE IF EXISTS grc_management;
+DROP USER IF EXISTS grc_user;
+
+-- Create user first
+CREATE USER grc_user WITH PASSWORD 'grc_password' CREATEDB;
+
+-- Create database with grc_user as owner
+CREATE DATABASE grc_management OWNER grc_user;
+
+-- Connect to the database and set up permissions
+\c grc_management
+
+-- Grant all privileges on public schema
+GRANT ALL PRIVILEGES ON SCHEMA public TO grc_user;
+GRANT CREATE ON SCHEMA public TO grc_user;
+GRANT USAGE ON SCHEMA public TO grc_user;
+
+-- Set default privileges for future objects
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO grc_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO grc_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO grc_user;
+
+-- Make grc_user the owner of the public schema
+ALTER SCHEMA public OWNER TO grc_user;
+EOF
 
 # Install dependencies
 echo "📦 Installing dependencies..."
