@@ -13,14 +13,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, FileText, Edit, Eye } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, FileText, Edit, Eye, Filter } from "lucide-react";
 import { format } from "date-fns";
+import CSVImport from "@/components/shared/csv-import";
 
 export default function Documents() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const [selectedOrgId, setSelectedOrgId] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [documentTypeFilter, setDocumentTypeFilter] = useState<string>("all");
+  const [showCsvImport, setShowCsvImport] = useState(false);
 
   // Get user organizations
   const { data: organizations = [] } = useQuery<Organization[]>({
@@ -88,6 +92,38 @@ export default function Documents() {
     },
   });
 
+  // Filter documents by type
+  const filteredDocuments = documents.filter((doc: Document) => {
+    if (documentTypeFilter === "all") return true;
+    return doc.documentType === documentTypeFilter;
+  });
+
+  // CSV import handler
+  const handleCsvImport = async (data: any[]) => {
+    try {
+      const response = await apiRequest(
+        "POST", 
+        `/api/organizations/${selectedOrgId}/documents/import-csv`,
+        { documents: data }
+      );
+      
+      if (response.ok) {
+        queryClient.invalidateQueries({ queryKey: ["/api/organizations", selectedOrgId, "documents"] });
+        toast({
+          title: "Success",
+          description: `Imported ${data.length} documents successfully`,
+        });
+        setShowCsvImport(false);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to import documents from CSV",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive"> = {
       draft: "secondary",
@@ -137,6 +173,37 @@ export default function Documents() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Documents</h1>
               <p className="text-gray-600 mt-2">Manage GRC documents, policies, and procedures</p>
+            </div>
+
+            {/* Document type filter */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <Select value={documentTypeFilter} onValueChange={setDocumentTypeFilter}>
+                  <SelectTrigger className="w-[180px]" data-testid="select-document-type">
+                    <SelectValue placeholder="Filter by type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="policy">Policy</SelectItem>
+                    <SelectItem value="procedure">Procedure</SelectItem>
+                    <SelectItem value="standard">Standard</SelectItem>
+                    <SelectItem value="guideline">Guideline</SelectItem>
+                    <SelectItem value="plan">Plan</SelectItem>
+                    <SelectItem value="charter">Charter</SelectItem>
+                    <SelectItem value="framework">Framework</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button 
+                onClick={() => setShowCsvImport(true)} 
+                variant="outline"
+                data-testid="button-import-csv"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Import CSV
+              </Button>
             </div>
             
             {selectedOrgId && (
@@ -207,7 +274,7 @@ export default function Documents() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {documents.map((doc: any) => (
+                    {filteredDocuments.map((doc: any) => (
                       <TableRow key={doc.id} data-testid={`row-document-${doc.id}`}>
                         <TableCell className="font-medium">{doc.title}</TableCell>
                         <TableCell>{doc.documentType || "Document"}</TableCell>
@@ -231,6 +298,23 @@ export default function Documents() {
               </CardContent>
             </Card>
           )}
+
+          {/* CSV Import Dialog */}
+          <Dialog open={showCsvImport} onOpenChange={setShowCsvImport}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Import Documents from CSV</DialogTitle>
+                <DialogDescription>
+                  Upload a CSV file containing documents to import. Required columns: Title, Document Type, Content, Framework (optional)
+                </DialogDescription>
+              </DialogHeader>
+              <CSVImport
+                onImport={handleCsvImport}
+                expectedColumns={["Title", "Document Type", "Content", "Framework"]}
+                data-testid="csv-import-documents"
+              />
+            </DialogContent>
+          </Dialog>
         </main>
       </div>
     </div>

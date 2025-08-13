@@ -90,6 +90,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // CSV import endpoint for documents
+  app.post("/api/organizations/:orgId/documents/import-csv", isAuthenticated, async (req: any, res) => {
+    try {
+      const { orgId } = req.params;
+      const { documents: csvData } = req.body;
+      const userId = req.user.claims.sub;
+      
+      const role = await storage.getUserRole(orgId, userId);
+      if (!role || !["admin", "contributor"].includes(role)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const createdDocuments = [];
+      
+      for (const docData of csvData) {
+        const data = insertDocumentSchema.parse({
+          organizationId: orgId,
+          title: docData.Title || docData.title,
+          content: docData.Content || docData.content || '',
+          documentType: docData['Document Type'] || docData.documentType || 'document',
+          version: '1.0',
+          createdBy: userId,
+          ownerId: userId,
+          status: 'draft',
+        });
+        
+        const document = await storage.createDocument(data);
+        
+        // Link to framework if specified
+        if (docData.Framework) {
+          // Find framework by name and link the document
+          const frameworks = await storage.getFrameworks();
+          const framework = frameworks.find(f => f.name.toLowerCase().includes(docData.Framework.toLowerCase()));
+          if (framework) {
+            // Create document-control mapping here if needed
+            console.log(`Linking document ${document.id} to framework ${framework.id}`);
+          }
+        }
+        
+        createdDocuments.push(document);
+      }
+      
+      res.json({ 
+        message: `Successfully imported ${createdDocuments.length} documents`,
+        documents: createdDocuments 
+      });
+    } catch (error) {
+      console.error("Error importing documents from CSV:", error);
+      res.status(400).json({ message: "Failed to import documents from CSV" });
+    }
+  });
+
   app.post("/api/organizations/:orgId/documents", isAuthenticated, async (req: any, res) => {
     try {
       const { orgId } = req.params;

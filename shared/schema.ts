@@ -10,6 +10,7 @@ import {
   jsonb,
   index,
   uuid,
+  unique,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -83,7 +84,9 @@ export const organizationFrameworks = pgTable("organization_frameworks", {
   frameworkId: uuid("framework_id").notNull().references(() => frameworks.id),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => ({
+  uniqueOrgFramework: unique().on(table.organizationId, table.frameworkId),
+}));
 
 // GRC documents
 export const documents = pgTable("documents", {
