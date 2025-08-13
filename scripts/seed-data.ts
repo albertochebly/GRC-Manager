@@ -1,4 +1,7 @@
 
+import { config } from "dotenv";
+config();
+
 import { db } from "../server/db";
 import { frameworks, controls } from "../shared/schema";
 

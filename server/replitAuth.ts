@@ -8,7 +8,10 @@ import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 
-if (!process.env.REPLIT_DOMAINS) {
+const REPLIT_DOMAINS = process.env.REPLIT_DOMAINS;
+
+// REPLIT_DOMAINS is optional for local development
+if (!REPLIT_DOMAINS && process.env.NODE_ENV !== 'development') {
   throw new Error("Environment variable REPLIT_DOMAINS not provided");
 }
 
@@ -84,8 +87,7 @@ export async function setupAuth(app: Express) {
     verified(null, user);
   };
 
-  for (const domain of process.env
-    .REPLIT_DOMAINS!.split(",")) {
+  for (const domain of REPLIT_DOMAINS!.split(",")) {
     const strategy = new Strategy(
       {
         name: `replitauth:${domain}`,
@@ -153,5 +155,24 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
   } catch (error) {
     res.status(401).json({ message: "Unauthorized" });
     return;
+  }
+};
+
+export const replitAuth = (request: Request) => {
+  const userHeader = request.headers.get("X-Replit-User-Id");
+  const usernameHeader = request.headers.get("X-Replit-User-Name");
+  const roleHeader = request.headers.get("X-Replit-User-Roles");
+  const domainHeader = request.headers.get("host");
+
+  if (!userHeader) {
+    return null;
+  }
+
+  // Skip domain validation in development
+  if (REPLIT_DOMAINS) {
+    const domains = REPLIT_DOMAINS.split(",").map((domain) => domain.trim());
+    if (!domainHeader || !domains.includes(domainHeader)) {
+      return null;
+    }
   }
 };
