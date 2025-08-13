@@ -1,3 +1,4 @@
+
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import { drizzle as pgDrizzle } from 'drizzle-orm/node-postgres';
@@ -18,13 +19,18 @@ if (!process.env.DATABASE_URL) {
 // Check if we're in local development
 const isLocal = process.env.DATABASE_URL.includes('localhost') || process.env.DATABASE_URL.includes('127.0.0.1');
 
+let pool: Pool | PgPool;
+let db: ReturnType<typeof drizzle> | ReturnType<typeof pgDrizzle>;
+
 if (isLocal) {
   // Use standard PostgreSQL connection for local development
-  export const pool = new PgPool({ connectionString: process.env.DATABASE_URL });
-  export const db = pgDrizzle({ client: pool, schema });
+  pool = new PgPool({ connectionString: process.env.DATABASE_URL });
+  db = pgDrizzle(pool, { schema });
 } else {
   // Use Neon serverless for production
   neonConfig.webSocketConstructor = ws;
-  export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  export const db = drizzle({ client: pool, schema });
+  pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  db = drizzle(pool, { schema });
 }
+
+export { pool, db };
