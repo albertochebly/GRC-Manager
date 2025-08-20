@@ -32,13 +32,21 @@ import { format } from "date-fns";
 export default function RiskRegister() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
-  const { selectedOrganizationId } = useOrganizations();
+  const { selectedOrganization, selectedOrganizationId } = useOrganizations();
   const [isAssetDialogOpen, setIsAssetDialogOpen] = useState(false);
   const [isScenarioDialogOpen, setIsScenarioDialogOpen] = useState(false);
   const [riskToDelete, setRiskToDelete] = useState<string | null>(null);
   const [selectedRisk, setSelectedRisk] = useState<Risk | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+
+  // Get user role in selected organization
+  const userRole = selectedOrganization?.role || "read-only";
+  
+  // Permission checks
+  const canCreateRisks = userRole !== "read-only";
+  const canEditRisks = userRole !== "read-only";
+  const canDeleteRisks = userRole === "admin";
 
   // Get risks for selected organization
   const { data: risks = [], isLoading: risksLoading } = useQuery<Risk[]>({
@@ -311,24 +319,26 @@ export default function RiskRegister() {
                             Risks associated with specific organizational assets (systems, data, facilities, etc.)
                           </CardDescription>
                         </div>
-                        <Dialog open={isAssetDialogOpen} onOpenChange={setIsAssetDialogOpen}>
-                          <DialogTrigger asChild>
-                            <Button data-testid="button-add-risk">
-                              <Plus className="w-4 h-4 mr-2" />
-                              Add Asset Risk
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
-                            <DialogHeader>
-                              <DialogTitle>Create New Asset-Based Risk</DialogTitle>
-                            </DialogHeader>
-                            <RiskForm 
-                              initialData={{ riskType: 'asset' }}
-                              onSubmit={(data) => createRiskMutation.mutate(data)}
-                              isLoading={createRiskMutation.isPending}
-                            />
-                          </DialogContent>
-                        </Dialog>
+                        {canCreateRisks && (
+                          <Dialog open={isAssetDialogOpen} onOpenChange={setIsAssetDialogOpen}>
+                            <DialogTrigger asChild>
+                              <Button data-testid="button-add-risk">
+                                <Plus className="w-4 h-4 mr-2" />
+                                Add Asset Risk
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+                              <DialogHeader>
+                                <DialogTitle>Create New Asset-Based Risk</DialogTitle>
+                              </DialogHeader>
+                              <RiskForm 
+                                initialData={{ riskType: 'asset' }}
+                                onSubmit={(data) => createRiskMutation.mutate(data)}
+                                isLoading={createRiskMutation.isPending}
+                              />
+                            </DialogContent>
+                          </Dialog>
+                        )}
                       </div>
                     </CardHeader>
                     <CardContent>
@@ -341,6 +351,8 @@ export default function RiskRegister() {
                         setRiskToDelete={setRiskToDelete}
                         getRiskLevel={getRiskLevel}
                         getStatusBadge={getStatusBadge}
+                        canEditRisks={canEditRisks}
+                        canDeleteRisks={canDeleteRisks}
                       />
                     </CardContent>
                   </Card>
@@ -356,24 +368,26 @@ export default function RiskRegister() {
                             Risks based on specific threat scenarios or business situations
                           </CardDescription>
                         </div>
-                        <Dialog open={isScenarioDialogOpen} onOpenChange={setIsScenarioDialogOpen}>
-                          <DialogTrigger asChild>
-                            <Button data-testid="button-add-scenario-risk">
-                              <Plus className="w-4 h-4 mr-2" />
-                              Add Scenario Risk
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
-                            <DialogHeader>
-                              <DialogTitle>Create New Scenario-Based Risk</DialogTitle>
-                            </DialogHeader>
-                            <RiskForm 
-                              initialData={{ riskType: 'scenario' }}
-                              onSubmit={(data) => createRiskMutation.mutate(data)}
-                              isLoading={createRiskMutation.isPending}
-                            />
-                          </DialogContent>
-                        </Dialog>
+                        {canCreateRisks && (
+                          <Dialog open={isScenarioDialogOpen} onOpenChange={setIsScenarioDialogOpen}>
+                            <DialogTrigger asChild>
+                              <Button data-testid="button-add-scenario-risk">
+                                <Plus className="w-4 h-4 mr-2" />
+                                Add Scenario Risk
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+                              <DialogHeader>
+                                <DialogTitle>Create New Scenario-Based Risk</DialogTitle>
+                              </DialogHeader>
+                              <RiskForm 
+                                initialData={{ riskType: 'scenario' }}
+                                onSubmit={(data) => createRiskMutation.mutate(data)}
+                                isLoading={createRiskMutation.isPending}
+                              />
+                            </DialogContent>
+                          </Dialog>
+                        )}
                       </div>
                     </CardHeader>
                     <CardContent>
@@ -386,6 +400,8 @@ export default function RiskRegister() {
                         setRiskToDelete={setRiskToDelete}
                         getRiskLevel={getRiskLevel}
                         getStatusBadge={getStatusBadge}
+                        canEditRisks={canEditRisks}
+                        canDeleteRisks={canDeleteRisks}
                       />
                     </CardContent>
                   </Card>
@@ -575,7 +591,9 @@ function RiskTable({
   setIsEditDialogOpen, 
   setRiskToDelete,
   getRiskLevel,
-  getStatusBadge 
+  getStatusBadge,
+  canEditRisks = true,
+  canDeleteRisks = true
 }: { 
   riskList: any[]; 
   emptyMessage: string;
@@ -585,6 +603,8 @@ function RiskTable({
   setRiskToDelete: (id: string | null) => void;
   getRiskLevel: (score: number) => { level: string; color: string };
   getStatusBadge: (status: string) => JSX.Element;
+  canEditRisks?: boolean;
+  canDeleteRisks?: boolean;
 }) {
   if (riskList.length === 0) {
     return (
@@ -649,26 +669,30 @@ function RiskTable({
                   >
                     <Eye className="w-4 h-4" />
                   </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    data-testid={`button-edit-risk-${risk.id}`}
-                    onClick={() => {
-                      setSelectedRisk(risk);
-                      setIsEditDialogOpen(true);
-                    }}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="ghost"
-                    onClick={() => setRiskToDelete(risk.id)}
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                    data-testid={`button-delete-risk-${risk.id}`}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {canEditRisks && (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      data-testid={`button-edit-risk-${risk.id}`}
+                      onClick={() => {
+                        setSelectedRisk(risk);
+                        setIsEditDialogOpen(true);
+                      }}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  )}
+                  {canDeleteRisks && (
+                    <Button 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={() => setRiskToDelete(risk.id)}
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      data-testid={`button-delete-risk-${risk.id}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </TableCell>
             </TableRow>
