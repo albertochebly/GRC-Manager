@@ -281,4 +281,4 @@ This is an active project with regular updates. Key areas of ongoing development
 
 ---
 
-**Built with ❤️ for the cybersecurity and compliance community**
+
