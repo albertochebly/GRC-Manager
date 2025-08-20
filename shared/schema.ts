@@ -199,6 +199,28 @@ export const approvals = pgTable("approvals", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Maturity assessments
+export const maturityAssessments = pgTable("maturity_assessments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  category: varchar("category", { length: 100 }).notNull(),
+  section: varchar("section", { length: 100 }).notNull(),
+  standardRef: varchar("standard_ref", { length: 50 }).notNull(),
+  question: text("question").notNull(),
+  currentMaturityLevel: varchar("current_maturity_level", { length: 10 }).notNull(),
+  currentMaturityScore: integer("current_maturity_score").notNull().default(0),
+  currentComments: text("current_comments"),
+  targetMaturityLevel: varchar("target_maturity_level", { length: 10 }).notNull(),
+  targetMaturityScore: integer("target_maturity_score").notNull().default(0),
+  targetComments: text("target_comments"),
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+  updatedBy: varchar("updated_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  unique().on(table.organizationId, table.standardRef)
+]);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   organizationUsers: many(organizationUsers),
@@ -314,6 +336,9 @@ export type Risk = typeof risks.$inferSelect;
 
 export type InsertApproval = typeof approvals.$inferInsert;
 export type Approval = typeof approvals.$inferSelect;
+
+export type InsertMaturityAssessment = typeof maturityAssessments.$inferInsert;
+export type MaturityAssessment = typeof maturityAssessments.$inferSelect;
 
 // Zod schemas
 // Temporarily disabled due to TypeScript errors

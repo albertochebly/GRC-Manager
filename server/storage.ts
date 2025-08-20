@@ -9,6 +9,7 @@ import {
   documents,
   risks,
   approvals,
+  maturityAssessments,
   organizationFrameworks,
   documentControls,
   riskControls,
@@ -26,6 +27,8 @@ import {
   type Approval,
   type InsertApproval,
   type OrganizationUser,
+  type MaturityAssessment,
+  type InsertMaturityAssessment,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -50,6 +53,12 @@ export interface IStorage {
   addUserToOrganization(data: { userId: string; organizationId: string; role: string; invitedBy: string }): Promise<OrganizationUser>;
   getUserRole(organizationId: string, userId: string): Promise<string | undefined>;
   getOrganizationUsers(organizationId: string): Promise<(OrganizationUser & { user: User })[]>;
+  getUserOrganization(userId: string, organizationId: string): Promise<(Organization & { role: string }) | undefined>;
+
+  // Maturity assessment operations
+  getMaturityAssessments(organizationId: string): Promise<MaturityAssessment[]>;
+  saveMaturityAssessments(organizationId: string, assessments: any[], userId: string): Promise<void>;
+  getMaturityAssessment(organizationId: string, assessmentId: string): Promise<MaturityAssessment | undefined>;
 
   // Framework operations
   initializeFrameworks(): Promise<void>;
@@ -459,6 +468,81 @@ export class DatabaseStorage implements IStorage {
         eq(approvals.status, 'pending')
       ))
       .orderBy(desc(approvals.createdAt));
+  }
+
+  async getUserOrganization(userId: string, organizationId: string): Promise<(Organization & { role: string }) | undefined> {
+    const result = await db
+      .select({
+        id: organizations.id,
+        name: organizations.name,
+        description: organizations.description,
+        createdAt: organizations.createdAt,
+        updatedAt: organizations.updatedAt,
+        role: organizationUsers.role,
+      })
+      .from(organizations)
+      .innerJoin(organizationUsers, eq(organizations.id, organizationUsers.organizationId))
+      .where(and(
+        eq(organizationUsers.userId, userId),
+        eq(organizations.id, organizationId)
+      ));
+
+    return result[0];
+  }
+
+  async getMaturityAssessments(organizationId: string): Promise<MaturityAssessment[]> {
+    return await db
+      .select()
+      .from(maturityAssessments)
+      .where(eq(maturityAssessments.organizationId, organizationId))
+      .orderBy(maturityAssessments.category, maturityAssessments.section, maturityAssessments.standardRef);
+  }
+
+  async saveMaturityAssessments(
+    organizationId: string, 
+    assessments: any[], 
+    userId: string
+  ): Promise<void> {
+    await db.transaction(async (tx) => {
+      for (const assessment of assessments) {
+        await tx
+          .insert(maturityAssessments)
+          .values({
+            ...assessment,
+            organizationId,
+            createdBy: userId,
+            updatedBy: userId,
+          })
+          .onConflictDoUpdate({
+            target: [maturityAssessments.organizationId, maturityAssessments.standardRef],
+            set: {
+              category: assessment.category,
+              section: assessment.section,
+              question: assessment.question,
+              currentMaturityLevel: assessment.currentMaturityLevel,
+              currentMaturityScore: assessment.currentMaturityScore,
+              currentComments: assessment.currentComments,
+              targetMaturityLevel: assessment.targetMaturityLevel,
+              targetMaturityScore: assessment.targetMaturityScore,
+              targetComments: assessment.targetComments,
+              updatedBy: userId,
+              updatedAt: sql`now()`,
+            }
+          });
+      }
+    });
+  }
+
+  async getMaturityAssessment(organizationId: string, assessmentId: string): Promise<MaturityAssessment | undefined> {
+    const result = await db
+      .select()
+      .from(maturityAssessments)
+      .where(and(
+        eq(maturityAssessments.organizationId, organizationId),
+        eq(maturityAssessments.id, assessmentId)
+      ));
+
+    return result[0];
   }
 }
 

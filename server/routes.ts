@@ -5,13 +5,15 @@ import organizationRoutes from "./routes/organizations";
 import documentRoutes from "./routes/documents";
 import riskRoutes from "./routes/risks";
 import frameworkRoutes from "./routes/frameworks";
+import maturityAssessmentRoutes from "./routes/maturity-assessments";
 
 console.log('Routes imported successfully:', {
   userRoutes: !!userRoutes,
   organizationRoutes: !!organizationRoutes,
   documentRoutes: !!documentRoutes,
   riskRoutes: !!riskRoutes,
-  frameworkRoutes: !!frameworkRoutes
+  frameworkRoutes: !!frameworkRoutes,
+  maturityAssessmentRoutes: !!maturityAssessmentRoutes
 });
 
 // Extend Express Request type to include user
@@ -53,6 +55,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount user routes under /api/organizations/:orgId/users
   app.use("/api/organizations", userRoutes);
   console.log('User routes mounted at /api/organizations');
+  
+  // Mount maturity assessment routes under /api/organizations
+  app.use("/api/organizations", maturityAssessmentRoutes);
+  console.log('Maturity assessment routes mounted at /api/organizations');
 
   // Create and return the HTTP server
   const httpServer = createServer(app);

@@ -49,6 +49,29 @@ export default function MaturityAssessment() {
   const userRole = selectedOrganization?.role;
   const canEditAssessments = userRole !== 'read-only';
 
+  // Fetch maturity assessments from API
+  const { data: apiAssessments, isLoading: isLoadingAssessments, refetch } = useQuery({
+    queryKey: ["/api/organizations", selectedOrganizationId, "maturity-assessments"],
+    queryFn: async () => {
+      if (!selectedOrganizationId) return [];
+      const response = await apiRequest("GET", `/api/organizations/${selectedOrganizationId}/maturity-assessments`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch maturity assessments");
+      }
+      return response.json();
+    },
+    enabled: !!selectedOrganizationId,
+  });
+
+  // Use API data if available, otherwise use default data
+  useEffect(() => {
+    if (apiAssessments && apiAssessments.length > 0) {
+      setAssessmentData(apiAssessments);
+    } else {
+      setAssessmentData(assessmentQuestions);
+    }
+  }, [apiAssessments, selectedOrganizationId]);
+
   // Calculate overall maturity score
   const calculateMaturityScore = (type: 'current' | 'target') => {
     const scoreKey = type === 'current' ? 'currentMaturityScore' : 'targetMaturityScore';
@@ -67,12 +90,52 @@ export default function MaturityAssessment() {
   };
 
   // Save assessment data
+  const saveAssessmentMutation = useMutation({
+    mutationFn: async (assessments: typeof assessmentData) => {
+      if (!selectedOrganizationId) {
+        throw new Error('No organization selected');
+      }
+      
+      const response = await apiRequest(
+        "POST",
+        `/api/organizations/${selectedOrganizationId}/maturity-assessments`,
+        assessments.map(({ id, ...rest }) => rest) // Remove id field for API
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to save maturity assessments');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Maturity assessment saved successfully",
+      });
+      refetch(); // Refetch the data
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error as Error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save assessment",
+        variant: "destructive",
+      });
+    },
+  });
+
   const saveAssessment = () => {
-    // In a real implementation, this would save to the backend
-    toast({
-      title: "Success",
-      description: "Maturity assessment saved successfully",
-    });
+    saveAssessmentMutation.mutate(assessmentData);
   };
 
   // Update assessment item
@@ -328,9 +391,13 @@ export default function MaturityAssessment() {
             {/* Save Button */}
             {canEditAssessments && (
               <div className="mt-6 flex justify-end">
-                <Button onClick={saveAssessment} className="flex items-center space-x-2">
+                <Button 
+                  onClick={saveAssessment} 
+                  className="flex items-center space-x-2"
+                  disabled={saveAssessmentMutation.isPending}
+                >
                   <Save className="w-4 h-4" />
-                  <span>Save Assessment</span>
+                  <span>{saveAssessmentMutation.isPending ? "Saving..." : "Save Assessment"}</span>
                 </Button>
               </div>
             )}
