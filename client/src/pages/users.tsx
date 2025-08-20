@@ -23,7 +23,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 
-const inviteUserSchema = z.object({
+const createUserSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   firstName: z.string().optional(),
@@ -39,7 +39,7 @@ const editUserSchema = z.object({
   role: z.enum(["admin", "contributor", "approver", "read-only"]),
 });
 
-type InviteUserForm = z.infer<typeof inviteUserSchema>;
+type CreateUserForm = z.infer<typeof createUserSchema>;
 type EditUserForm = z.infer<typeof editUserSchema>;
 
 export default function Users() {
@@ -50,8 +50,8 @@ export default function Users() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
 
-  const inviteUserMutation = useMutation({
-    mutationFn: async (data: InviteUserForm) => {
+  const createUserMutation = useMutation({
+    mutationFn: async (data: CreateUserForm) => {
       if (!selectedOrganizationId) throw new Error("No organization selected");
       const response = await apiRequest(
         "POST",
@@ -60,14 +60,14 @@ export default function Users() {
       );
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to invite user");
+        throw new Error(error.message || "Failed to create user");
       }
       return response.json();
     },
     onSuccess: () => {
       toast({
         title: "Success",
-        description: "User invitation sent successfully",
+        description: "User created successfully",
       });
       setIsDialogOpen(false);
       reset();
@@ -82,8 +82,8 @@ export default function Users() {
     },
   });
 
-  const onSubmit = (data: InviteUserForm) => {
-    inviteUserMutation.mutate(data);
+  const onSubmit = (data: CreateUserForm) => {
+    createUserMutation.mutate(data);
   };
 
   const {
@@ -92,8 +92,8 @@ export default function Users() {
     reset,
     setValue,
     formState: { errors },
-  } = useForm<InviteUserForm>({
-    resolver: zodResolver(inviteUserSchema),
+  } = useForm<CreateUserForm>({
+    resolver: zodResolver(createUserSchema),
   });
 
   // Separate form for editing users
@@ -321,13 +321,13 @@ export default function Users() {
             {selectedOrganizationId && (
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button data-testid="button-invite-user">
+                  <Button data-testid="button-create-user">
                     <Plus className="w-4 h-4 mr-2" />
-                    Invite User
+                    Create User
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
-                  <form onSubmit={handleSubmit((data) => inviteUserMutation.mutate(data))}>
+                  <form onSubmit={handleSubmit((data) => createUserMutation.mutate(data))}>
                     <DialogHeader>
                       <DialogTitle>Create New User</DialogTitle>
                       <DialogDescription>
@@ -423,10 +423,10 @@ export default function Users() {
                       </Button>
                       <Button 
                         type="submit" 
-                        disabled={inviteUserMutation.isPending}
-                        data-testid="button-send-invitation"
+                        disabled={createUserMutation.isPending}
+                        data-testid="button-create-user-submit"
                       >
-                        {inviteUserMutation.isPending ? "Sending..." : "Send Invitation"}
+                        {createUserMutation.isPending ? "Creating..." : "Create User"}
                       </Button>
                     </DialogFooter>
                   </form>
@@ -460,12 +460,12 @@ export default function Users() {
                   <div className="text-center py-12">
                     <UsersIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No Users Yet</h3>
-                    <p className="text-gray-600 mb-6">Start by inviting team members to join this organization.</p>
+                    <p className="text-gray-600 mb-6">Start by creating team members for this organization.</p>
                     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                       <DialogTrigger asChild>
-                        <Button data-testid="button-invite-first-user">
+                        <Button data-testid="button-create-first-user">
                           <Plus className="w-4 h-4 mr-2" />
-                          Invite Your First User
+                          Create Your First User
                         </Button>
                       </DialogTrigger>
                     </Dialog>
