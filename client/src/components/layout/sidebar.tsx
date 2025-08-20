@@ -23,7 +23,7 @@ export default function Sidebar() {
     { name: "Dashboard", href: "/dashboard", icon: Home },
     { name: "Documents", href: "/documents", icon: FileText },
     { name: "Risk Register", href: "/risk-register", icon: AlertTriangle },
-    { name: "Maturity Assessment", href: "/maturity-assessment", icon: BarChart3 },
+    { name: "ISO27001 Maturity Assessment", href: "/maturity-assessment", icon: BarChart3 },
     { name: "Frameworks", href: "/frameworks", icon: Clipboard },
     { name: "Import/Export", href: "/import-export", icon: Upload },
     { name: "Users & Roles", href: "/users", icon: Users },

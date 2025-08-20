@@ -66,10 +66,8 @@ export default function MaturityAssessment() {
   // Use API data if available, otherwise use default data
   useEffect(() => {
     if (apiAssessments && apiAssessments.length > 0) {
-      console.log("Using API data:", apiAssessments.length, "items");
       setAssessmentData(apiAssessments);
     } else {
-      console.log("Using default data:", assessmentQuestions.length, "items");
       setAssessmentData(assessmentQuestions);
     }
   }, [apiAssessments, selectedOrganizationId]);
@@ -170,12 +168,6 @@ export default function MaturityAssessment() {
         return true;
       });
 
-  // Debug logging
-  console.log("Assessment data length:", assessmentData.length);
-  console.log("Selected category:", selectedCategory);
-  console.log("Filtered assessments length:", filteredAssessments.length);
-  console.log("Categories in data:", Array.from(new Set(assessmentData.map(item => item.category))));
-
   if (isLoading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
@@ -190,11 +182,11 @@ export default function MaturityAssessment() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-[98%] mx-auto">
             <div className="mb-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900">Maturity Assessment</h1>
+                  <h1 className="text-3xl font-bold text-gray-900">ISO27001 Maturity Assessment</h1>
                   <p className="text-gray-600 mt-2">ISO 27001 Information Security Management System Maturity Assessment</p>
                 </div>
                 <div className="flex space-x-2">
@@ -295,16 +287,16 @@ export default function MaturityAssessment() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="min-w-[120px]">Category</TableHead>
-                        <TableHead className="min-w-[180px]">Section</TableHead>
-                        <TableHead className="min-w-[100px]">Standard Ref</TableHead>
-                        <TableHead className="min-w-[300px]">Assessment Question</TableHead>
-                        <TableHead className="min-w-[200px]">Current Maturity Level</TableHead>
-                        <TableHead className="min-w-[80px]">Current Score</TableHead>
-                        <TableHead className="min-w-[200px]">Current Comments</TableHead>
-                        <TableHead className="min-w-[200px]">Target Maturity Level</TableHead>
-                        <TableHead className="min-w-[80px]">Target Score</TableHead>
-                        <TableHead className="min-w-[200px]">Target Comments</TableHead>
+                        <TableHead className="min-w-[140px]">Category</TableHead>
+                        <TableHead className="min-w-[200px]">Section</TableHead>
+                        <TableHead className="min-w-[120px]">Standard Ref</TableHead>
+                        <TableHead className="min-w-[400px]">Assessment Question</TableHead>
+                        <TableHead className="min-w-[220px]">Current Maturity Level</TableHead>
+                        <TableHead className="min-w-[100px]">Current Score</TableHead>
+                        <TableHead className="min-w-[250px]">Current Comments</TableHead>
+                        <TableHead className="min-w-[220px]">Target Maturity Level</TableHead>
+                        <TableHead className="min-w-[100px]">Target Score</TableHead>
+                        <TableHead className="min-w-[250px]">Target Comments</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -317,8 +309,8 @@ export default function MaturityAssessment() {
                           </TableCell>
                           <TableCell className="font-medium">{assessment.section}</TableCell>
                           <TableCell>{assessment.standardRef}</TableCell>
-                          <TableCell className="max-w-[300px]">
-                            <div className="text-sm">{assessment.question}</div>
+                          <TableCell className="max-w-[400px]">
+                            <div className="text-sm leading-relaxed">{assessment.question}</div>
                           </TableCell>
                           <TableCell>
                             <Select
@@ -350,7 +342,7 @@ export default function MaturityAssessment() {
                               value={assessment.currentComments}
                               onChange={(e) => updateAssessmentItem(assessment.id, 'currentComments', e.target.value)}
                               placeholder="Current comments..."
-                              className="min-h-[60px]"
+                              className="min-h-[80px] min-w-[250px]"
                               disabled={!canEditAssessments}
                             />
                           </TableCell>
@@ -384,7 +376,7 @@ export default function MaturityAssessment() {
                               value={assessment.targetComments}
                               onChange={(e) => updateAssessmentItem(assessment.id, 'targetComments', e.target.value)}
                               placeholder="Target comments..."
-                              className="min-h-[60px]"
+                              className="min-h-[80px] min-w-[250px]"
                               disabled={!canEditAssessments}
                             />
                           </TableCell>
