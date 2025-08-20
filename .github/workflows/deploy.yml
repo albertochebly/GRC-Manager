@@ -76,7 +76,7 @@ jobs:
         cat > deploy/start.sh << 'EOF'
         #!/bin/bash
         cd /opt/auditalign
-        npm install --production
+        npm install --production --omit=dev
         npm run db:push
         pm2 restart auditalign || pm2 start dist/index.js --name auditalign
         EOF

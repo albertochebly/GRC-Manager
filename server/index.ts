@@ -1,9 +1,23 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
 import { setupAuth } from "./auth";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const app = express();
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const isProduction = process.env.NODE_ENV === "production";
+
+// Simple logging function
+function log(message: string, source = "express") {
+  const formattedTime = new Date().toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit", 
+    second: "2-digit",
+    hour12: true,
+  });
+  console.log(`${formattedTime} [${source}] ${message}`);
+}
 
 // Trust proxy for session handling
 app.set('trust proxy', 1);
@@ -78,10 +92,21 @@ app.use((req, res, next) => {
   // doesn't interfere with the other routes
   if (process.env.NODE_ENV === "development") {
     log("Setting up Vite development server...");
+    const { setupVite } = await import("./vite");
     await setupVite(app, server);
   } else {
-    log("Setting up static file serving...");
-    serveStatic(app);
+    log("Setting up static file serving for production...");
+    // Serve static files from public directory in production
+    const publicPath = path.join(__dirname, "public");
+    app.use(express.static(publicPath));
+    
+    // Serve the index.html for all non-API routes (SPA routing)
+    app.get("*", (req, res, next) => {
+      if (req.path.startsWith("/api/")) {
+        return next();
+      }
+      res.sendFile(path.join(publicPath, "index.html"));
+    });
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
