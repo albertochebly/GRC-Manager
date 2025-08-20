@@ -177,12 +177,12 @@ export default function MaturityAssessment() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="min-h-screen flex bg-gray-50">
       <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 ml-64">
         <Header />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4">
-          <div className="max-w-full mx-auto">
+        <main className="p-4">
+          <div>
             <div className="mb-6">
               <div className="flex items-center justify-between">
                 <div>
