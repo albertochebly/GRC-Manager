@@ -27,6 +27,31 @@ export default function Sidebar() {
     { name: "Users & Roles", href: "/users", icon: Users },
   ];
 
+  // Filter navigation items based on user role
+  const getFilteredNavigation = () => {
+    const userRole = selectedOrganization?.role;
+    
+    // For contributor, approver, and read-only roles, only show Dashboard, Documents, and Risk Register
+    if (userRole === "contributor" || userRole === "approver" || userRole === "read-only") {
+      return navigation.filter(item => 
+        item.href === "/dashboard" || 
+        item.href === "/documents" || 
+        item.href === "/risk-register"
+      );
+    }
+    
+    // For admin and other roles, show all navigation items
+    return navigation;
+  };
+
+  const filteredNavigation = getFilteredNavigation();
+
+  // Check if user should see organizations link (only admins)
+  const canAccessOrganizations = () => {
+    const userRole = selectedOrganization?.role;
+    return userRole === "admin" || !userRole; // Allow access for admin or when no role is set (super admin)
+  };
+
   const isActive = (href: string) => {
     if (href === "/dashboard") {
       return location.pathname === "/dashboard";
@@ -84,7 +109,7 @@ export default function Sidebar() {
 
       {/* Navigation Menu */}
       <nav className="p-4 space-y-2">
-        {navigation.map((item) => {
+        {filteredNavigation.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
           
@@ -106,22 +131,24 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Organizations Link */}
-      <div className="px-4">
-        <Link to="/organizations">
-          <div 
-            className={`flex items-center space-x-3 px-3 py-2 rounded-md transition-colors ${
-              isActive("/organizations") 
-                ? "bg-blue-50 text-primary font-medium" 
-                : "text-gray-700 hover:bg-gray-100"
-            }`}
-            data-testid="nav-organizations"
-          >
-            <Shield className="w-5 h-5" />
-            <span>Organizations</span>
-          </div>
-        </Link>
-      </div>
+      {/* Organizations Link - Only for Admins */}
+      {canAccessOrganizations() && (
+        <div className="px-4">
+          <Link to="/organizations">
+            <div 
+              className={`flex items-center space-x-3 px-3 py-2 rounded-md transition-colors ${
+                isActive("/organizations") 
+                  ? "bg-blue-50 text-primary font-medium" 
+                  : "text-gray-700 hover:bg-gray-100"
+              }`}
+              data-testid="nav-organizations"
+            >
+              <Shield className="w-5 h-5" />
+              <span>Organizations</span>
+            </div>
+          </Link>
+        </div>
+      )}
 
       {/* User Role Badge */}
       <div className="absolute bottom-4 left-4 right-4">

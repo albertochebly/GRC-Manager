@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { useAuth } from "@/hooks/useAuth";
+import RoleProtectedRoute from "@/components/layout/RoleProtectedRoute";
 
 // Pages
 import NotFound from "@/pages/not-found";
@@ -59,12 +60,50 @@ function App() {
 
         {/* Protected routes */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/organizations" element={<ProtectedRoute><Organizations /></ProtectedRoute>} />
         <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
         <Route path="/risk-register" element={<ProtectedRoute><RiskRegister /></ProtectedRoute>} />
-        <Route path="/frameworks" element={<ProtectedRoute><Frameworks /></ProtectedRoute>} />
-        <Route path="/import-export" element={<ProtectedRoute><ImportExport /></ProtectedRoute>} />
-        <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
+        
+        {/* Admin-only routes */}
+        <Route 
+          path="/organizations" 
+          element={
+            <ProtectedRoute>
+              <RoleProtectedRoute adminOnly={true}>
+                <Organizations />
+              </RoleProtectedRoute>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/frameworks" 
+          element={
+            <ProtectedRoute>
+              <RoleProtectedRoute adminOnly={true}>
+                <Frameworks />
+              </RoleProtectedRoute>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/import-export" 
+          element={
+            <ProtectedRoute>
+              <RoleProtectedRoute adminOnly={true}>
+                <ImportExport />
+              </RoleProtectedRoute>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/users" 
+          element={
+            <ProtectedRoute>
+              <RoleProtectedRoute adminOnly={true}>
+                <Users />
+              </RoleProtectedRoute>
+            </ProtectedRoute>
+          } 
+        />
 
         {/* Catch-all route */}
         <Route path="*" element={<NotFound />} />
