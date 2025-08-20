@@ -5,14 +5,9 @@ on:
     branches: [ main, production ]
   pull_request:
     branches: [ main ]
-  workflow_dispatc    - name: Extract and start application
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.VM_IP }}
-        username: ${{ secrets.VM_USER }}
-        key: ${{ secrets.AUDITALIGN_DEPLOY_KEY }}
-        port: ${{ secrets.PORT_SSH }}
-        script: |
+  workflow_dispatch:
+
+env:
   NODE_VERSION: '18'
   APP_NAME: 'auditalign'
 
@@ -137,10 +132,10 @@ jobs:
     - name: Extract and start application
       uses: appleboy/ssh-action@v1.0.3
       with:
-        host: ${{ secrets.VM_HOST }}
+        host: ${{ secrets.VM_IP }}
         username: ${{ secrets.VM_USER }}
-        key: ${{ secrets.VM_SSH_KEY }}
-        port: ${{ secrets.VM_PORT || 15753 }}
+        key: ${{ secrets.AUDITALIGN_DEPLOY_KEY }}
+        port: ${{ secrets.PORT_SSH }}
         script: |
           cd ~/temp_deploy
           tar -xzf deployment.tar.gz
