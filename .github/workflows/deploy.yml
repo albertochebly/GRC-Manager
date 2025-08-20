@@ -60,6 +60,7 @@ jobs:
         cp package-lock.json deploy/
         cp -r migrations/ deploy/
         cp -r scripts/ deploy/
+        cp -r shared/ deploy/
         cp drizzle.config.ts deploy/
         
         # Create production environment file template
