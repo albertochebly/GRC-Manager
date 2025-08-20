@@ -66,8 +66,10 @@ export default function MaturityAssessment() {
   // Use API data if available, otherwise use default data
   useEffect(() => {
     if (apiAssessments && apiAssessments.length > 0) {
+      console.log("Using API data:", apiAssessments.length, "items");
       setAssessmentData(apiAssessments);
     } else {
+      console.log("Using default data:", assessmentQuestions.length, "items");
       setAssessmentData(assessmentQuestions);
     }
   }, [apiAssessments, selectedOrganizationId]);
@@ -167,6 +169,12 @@ export default function MaturityAssessment() {
         if (selectedCategory === "annexa") return item.category === "Annex A Controls";
         return true;
       });
+
+  // Debug logging
+  console.log("Assessment data length:", assessmentData.length);
+  console.log("Selected category:", selectedCategory);
+  console.log("Filtered assessments length:", filteredAssessments.length);
+  console.log("Categories in data:", [...new Set(assessmentData.map(item => item.category))]);
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
