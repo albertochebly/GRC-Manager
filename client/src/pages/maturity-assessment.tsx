@@ -181,8 +181,8 @@ export default function MaturityAssessment() {
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
-          <div className="max-w-[98%] mx-auto">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4">
+          <div className="max-w-full mx-auto">
             <div className="mb-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -284,19 +284,19 @@ export default function MaturityAssessment() {
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
-                  <Table>
+                  <Table className="min-w-full">
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="min-w-[140px]">Category</TableHead>
-                        <TableHead className="min-w-[200px]">Section</TableHead>
-                        <TableHead className="min-w-[120px]">Standard Ref</TableHead>
-                        <TableHead className="min-w-[400px]">Assessment Question</TableHead>
-                        <TableHead className="min-w-[220px]">Current Maturity Level</TableHead>
-                        <TableHead className="min-w-[100px]">Current Score</TableHead>
-                        <TableHead className="min-w-[250px]">Current Comments</TableHead>
-                        <TableHead className="min-w-[220px]">Target Maturity Level</TableHead>
-                        <TableHead className="min-w-[100px]">Target Score</TableHead>
-                        <TableHead className="min-w-[250px]">Target Comments</TableHead>
+                        <TableHead className="w-32">Category</TableHead>
+                        <TableHead className="w-40">Section</TableHead>
+                        <TableHead className="w-24">Standard Ref</TableHead>
+                        <TableHead className="w-80">Assessment Question</TableHead>
+                        <TableHead className="w-48">Current Maturity Level</TableHead>
+                        <TableHead className="w-20">Current Score</TableHead>
+                        <TableHead className="w-60">Current Comments</TableHead>
+                        <TableHead className="w-48">Target Maturity Level</TableHead>
+                        <TableHead className="w-20">Target Score</TableHead>
+                        <TableHead className="w-60">Target Comments</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -309,8 +309,8 @@ export default function MaturityAssessment() {
                           </TableCell>
                           <TableCell className="font-medium">{assessment.section}</TableCell>
                           <TableCell>{assessment.standardRef}</TableCell>
-                          <TableCell className="max-w-[400px]">
-                            <div className="text-sm leading-relaxed">{assessment.question}</div>
+                          <TableCell className="max-w-80">
+                            <div className="text-sm leading-relaxed break-words">{assessment.question}</div>
                           </TableCell>
                           <TableCell>
                             <Select
@@ -342,7 +342,7 @@ export default function MaturityAssessment() {
                               value={assessment.currentComments}
                               onChange={(e) => updateAssessmentItem(assessment.id, 'currentComments', e.target.value)}
                               placeholder="Current comments..."
-                              className="min-h-[80px] min-w-[250px]"
+                              className="min-h-[70px] w-full max-w-60"
                               disabled={!canEditAssessments}
                             />
                           </TableCell>
@@ -376,7 +376,7 @@ export default function MaturityAssessment() {
                               value={assessment.targetComments}
                               onChange={(e) => updateAssessmentItem(assessment.id, 'targetComments', e.target.value)}
                               placeholder="Target comments..."
-                              className="min-h-[80px] min-w-[250px]"
+                              className="min-h-[70px] w-full max-w-60"
                               disabled={!canEditAssessments}
                             />
                           </TableCell>
