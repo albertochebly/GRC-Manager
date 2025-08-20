@@ -20,7 +20,7 @@ const maturityAssessmentSchema = z.object({
 });
 
 // Get all maturity assessments for an organization
-router.get("/api/organizations/:organizationId/maturity-assessments", isAuthenticated, async (req, res) => {
+router.get("/:organizationId/maturity-assessments", isAuthenticated, async (req, res) => {
   try {
     const { organizationId } = req.params;
     const userId = req.user!.id;
@@ -40,7 +40,7 @@ router.get("/api/organizations/:organizationId/maturity-assessments", isAuthenti
 });
 
 // Create or update maturity assessments for an organization
-router.post("/api/organizations/:organizationId/maturity-assessments", isAuthenticated, async (req, res) => {
+router.post("/:organizationId/maturity-assessments", isAuthenticated, async (req, res) => {
   try {
     const { organizationId } = req.params;
     const userId = req.user!.id;
@@ -72,7 +72,7 @@ router.post("/api/organizations/:organizationId/maturity-assessments", isAuthent
 });
 
 // Get a specific maturity assessment
-router.get("/api/organizations/:organizationId/maturity-assessments/:assessmentId", isAuthenticated, async (req, res) => {
+router.get("/:organizationId/maturity-assessments/:assessmentId", isAuthenticated, async (req, res) => {
   try {
     const { organizationId, assessmentId } = req.params;
     const userId = req.user!.id;
