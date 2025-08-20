@@ -8,7 +8,8 @@ import {
   AlertTriangle, 
   Clipboard, 
   Upload, 
-  Users 
+  Users,
+  BarChart3
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganizations } from "@/hooks/useOrganizations";
@@ -22,6 +23,7 @@ export default function Sidebar() {
     { name: "Dashboard", href: "/dashboard", icon: Home },
     { name: "Documents", href: "/documents", icon: FileText },
     { name: "Risk Register", href: "/risk-register", icon: AlertTriangle },
+    { name: "Maturity Assessment", href: "/maturity-assessment", icon: BarChart3 },
     { name: "Frameworks", href: "/frameworks", icon: Clipboard },
     { name: "Import/Export", href: "/import-export", icon: Upload },
     { name: "Users & Roles", href: "/users", icon: Users },
@@ -31,12 +33,13 @@ export default function Sidebar() {
   const getFilteredNavigation = () => {
     const userRole = selectedOrganization?.role;
     
-    // For contributor, approver, and read-only roles, only show Dashboard, Documents, and Risk Register
+    // For contributor, approver, and read-only roles, only show Dashboard, Documents, Risk Register, and Maturity Assessment
     if (userRole === "contributor" || userRole === "approver" || userRole === "read-only") {
       return navigation.filter(item => 
         item.href === "/dashboard" || 
         item.href === "/documents" || 
-        item.href === "/risk-register"
+        item.href === "/risk-register" ||
+        item.href === "/maturity-assessment"
       );
     }
     

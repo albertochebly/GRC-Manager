@@ -15,6 +15,7 @@ import RiskRegister from "@/pages/risk-register";
 import Frameworks from "@/pages/frameworks";
 import ImportExport from "@/pages/import-export";
 import Users from "@/pages/users";
+import MaturityAssessment from "@/pages/maturity-assessment";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -62,6 +63,7 @@ function App() {
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
         <Route path="/risk-register" element={<ProtectedRoute><RiskRegister /></ProtectedRoute>} />
+        <Route path="/maturity-assessment" element={<ProtectedRoute><MaturityAssessment /></ProtectedRoute>} />
         
         {/* Admin-only routes */}
         <Route 
