@@ -174,7 +174,7 @@ export default function MaturityAssessment() {
   console.log("Assessment data length:", assessmentData.length);
   console.log("Selected category:", selectedCategory);
   console.log("Filtered assessments length:", filteredAssessments.length);
-  console.log("Categories in data:", [...new Set(assessmentData.map(item => item.category))]);
+  console.log("Categories in data:", Array.from(new Set(assessmentData.map(item => item.category))));
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
