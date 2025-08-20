@@ -1,0 +1,179 @@
+name: Deploy to Remote VM
+
+on:
+  push:
+    branches: [ main, production ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatc    - name: Extract and start application
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.VM_IP }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.AUDITALIGN_DEPLOY_KEY }}
+        port: ${{ secrets.PORT_SSH }}
+        script: |
+  NODE_VERSION: '18'
+  APP_NAME: 'auditalign'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run type check
+      run: npm run check
+    
+    - name: Build application
+      run: npm run build
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build application
+      run: npm run build
+    
+    - name: Create deployment package
+      run: |
+        mkdir -p deploy
+        cp -r dist/ deploy/
+        cp package.json deploy/
+        cp package-lock.json deploy/
+        cp -r migrations/ deploy/
+        cp -r scripts/ deploy/
+        cp drizzle.config.ts deploy/
+        
+        # Create production environment file template
+        cat > deploy/.env.production << EOF
+        NODE_ENV=production
+        PORT=3000
+        DATABASE_URL=your_production_database_url
+        JWT_SECRET=your_jwt_secret
+        ADMIN_EMAIL=admin@auditalign.com
+        ADMIN_PASSWORD=your_secure_password
+        EOF
+        
+        # Create deployment scripts
+        cat > deploy/start.sh << 'EOF'
+        #!/bin/bash
+        cd /opt/auditalign
+        npm install --production
+        npm run db:push
+        pm2 restart auditalign || pm2 start dist/index.js --name auditalign
+        EOF
+        chmod +x deploy/start.sh
+        
+        cat > deploy/install.sh << 'EOF'
+        #!/bin/bash
+        # Install Node.js if not present
+        curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+        apt-get install -y nodejs
+        
+        # Install PM2 globally
+        npm install -g pm2
+        
+        # Create application directory
+        mkdir -p /opt/auditalign
+        
+        # Setup PM2 to start on boot
+        pm2 startup
+        pm2 save
+        EOF
+        chmod +x deploy/install.sh
+        
+        tar -czf deployment.tar.gz -C deploy .
+    
+    - name: Deploy to VM
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.VM_IP }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.AUDITALIGN_DEPLOY_KEY }}
+        port: ${{ secrets.PORT_SSH }}
+        script: |
+          # Create backup of current deployment
+          if [ -d "/opt/auditalign" ]; then
+            cp -r /opt/auditalign /opt/auditalign.backup.$(date +%Y%m%d_%H%M%S)
+          fi
+          
+          # Create temp directory for new deployment
+          mkdir -p ~/temp_deploy
+          cd ~/temp_deploy
+          
+    - name: Copy deployment package
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.VM_IP }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.AUDITALIGN_DEPLOY_KEY }}
+        port: ${{ secrets.PORT_SSH }}
+        source: "deployment.tar.gz"
+        target: "~/temp_deploy/"
+    
+    - name: Extract and start application
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.VM_HOST }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.VM_SSH_KEY }}
+        port: ${{ secrets.VM_PORT || 15753 }}
+        script: |
+          cd ~/temp_deploy
+          tar -xzf deployment.tar.gz
+          
+          # First time setup (run install script if PM2 not installed)
+          if ! command -v pm2 &> /dev/null; then
+            ./install.sh
+          fi
+          
+          # Copy new files to application directory
+          cp -r * /opt/auditalign/
+          chown -R root:root /opt/auditalign
+          
+          # Start/restart the application
+          cd /opt/auditalign
+          ./start.sh
+          
+          # Cleanup
+          rm -rf ~/temp_deploy
+          
+          echo "Deployment completed successfully!"
+          pm2 status
+
+  notify:
+    needs: [test, deploy]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+    - name: Deployment Status
+      run: |
+        if [ "${{ needs.deploy.result }}" == "success" ]; then
+          echo "✅ Deployment successful!"
+        else
+          echo "❌ Deployment failed!"
+          exit 1
+        fi
