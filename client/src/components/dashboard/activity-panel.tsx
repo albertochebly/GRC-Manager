@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, Eye, FileText, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 interface ActivityPanelProps {
   pendingApprovals: any[];
@@ -10,6 +11,8 @@ interface ActivityPanelProps {
 }
 
 export default function ActivityPanel({ pendingApprovals, isLoading }: ActivityPanelProps) {
+  const navigate = useNavigate();
+
   if (isLoading) {
     return (
       <Card>
@@ -31,7 +34,7 @@ export default function ActivityPanel({ pendingApprovals, isLoading }: ActivityP
     );
   }
 
-  const getItemIcon = (itemType: string) => {
+  const getItemIcon = (itemType: string | undefined) => {
     switch (itemType) {
       case "document":
         return FileText;
@@ -42,8 +45,20 @@ export default function ActivityPanel({ pendingApprovals, isLoading }: ActivityP
     }
   };
 
-  const getItemTypeLabel = (itemType: string) => {
+  const getItemTypeLabel = (itemType: string | undefined) => {
+    if (!itemType) return "Unknown";
     return itemType.charAt(0).toUpperCase() + itemType.slice(1);
+  };
+
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return "Unknown date";
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "Invalid date";
+      return format(date, "MMM dd, yyyy");
+    } catch (error) {
+      return "Invalid date";
+    }
   };
 
   return (
@@ -64,29 +79,34 @@ export default function ActivityPanel({ pendingApprovals, isLoading }: ActivityP
           </div>
         ) : (
           <div className="space-y-4">
-            {pendingApprovals.slice(0, 5).map((approval: any) => {
-              const Icon = getItemIcon(approval.itemType);
+            {pendingApprovals.slice(0, 5).map((document: any) => {
+              const Icon = getItemIcon("document"); // All items are documents
               return (
                 <div
-                  key={approval.id}
+                  key={document.id}
                   className="flex items-center justify-between p-3 border rounded-lg"
-                  data-testid={`approval-item-${approval.id}`}
+                  data-testid={`approval-item-${document.id}`}
                 >
                   <div className="flex items-center space-x-3">
                     <Icon className="h-4 w-4 text-gray-500" />
                     <div>
-                      <p className="font-medium text-sm">{approval.itemTitle || "Untitled"}</p>
+                      <p className="font-medium text-sm">{document.title || document.name || "Untitled Document"}</p>
                       <div className="flex items-center space-x-2 mt-1">
                         <Badge variant="outline" className="text-xs">
-                          {getItemTypeLabel(approval.itemType)}
+                          Document
                         </Badge>
                         <span className="text-xs text-gray-500">
-                          {format(new Date(approval.submittedAt), "MMM dd, yyyy")}
+                          {formatDate(document.submittedAt || document.updatedAt || document.createdAt)}
                         </span>
                       </div>
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" data-testid={`button-review-${approval.id}`}>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    data-testid={`button-review-${document.id}`}
+                    onClick={() => navigate(`/documents?edit=${document.id}`)}
+                  >
                     <Eye className="h-3 w-3 mr-1" />
                     Review
                   </Button>

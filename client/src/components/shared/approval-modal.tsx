@@ -64,7 +64,7 @@ export default function ApprovalModal({ isOpen, onClose, approval }: ApprovalMod
   });
 
   const handleApprove = () => {
-    updateApprovalMutation.mutate({ status: "approved", comments });
+    updateApprovalMutation.mutate({ status: "published", comments });
   };
 
   const handleReject = () => {

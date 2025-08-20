@@ -99,8 +99,7 @@ export default function ImportExport() {
         
         <main className="p-6">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Import & Export</h1>
-            <p className="text-gray-600 mt-2">Bulk import data and download CSV templates</p>
+            {/* Title and description now handled by Header component */}
           </div>
 
           {!selectedOrgId ? (

@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, Users, FileText, TrendingUp, CheckCircle, Globe } from "lucide-react";
+import { Shield, FileText, BarChart3, Users, CheckCircle, ArrowRight, Globe } from "lucide-react";
 
 export default function Landing() {
-  const handleLogin = () => {
-    window.location.href = "/api/login";
+  const handleSignIn = () => {
+    console.log("Sign in button clicked, redirecting to /login");
+    window.location.href = "/login";
   };
 
   return (
@@ -17,7 +18,7 @@ export default function Landing() {
               <Shield className="h-8 w-8 text-primary" />
               <h1 className="text-2xl font-bold text-gray-900">GRC Manager</h1>
             </div>
-            <Button onClick={handleLogin} data-testid="button-login">
+            <Button onClick={handleSignIn} data-testid="button-login">
               Sign In
             </Button>
           </div>
@@ -36,7 +37,7 @@ export default function Landing() {
             with approval workflows, risk registers, and cybersecurity framework mapping.
           </p>
           <div className="mt-10">
-            <Button size="lg" onClick={handleLogin} className="mr-4" data-testid="button-get-started">
+            <Button size="lg" onClick={handleSignIn} className="mr-4" data-testid="button-get-started">
               Get Started
             </Button>
             <Button variant="outline" size="lg">
@@ -101,7 +102,7 @@ export default function Landing() {
 
           <Card>
             <CardHeader>
-              <TrendingUp className="h-10 w-10 text-primary mb-2" />
+              <BarChart3 className="h-10 w-10 text-primary mb-2" />
               <CardTitle>Risk Management</CardTitle>
               <CardDescription>
                 Maintain comprehensive risk registers with automated scoring and mitigation tracking.
@@ -212,7 +213,7 @@ export default function Landing() {
           <p className="mt-4 text-xl text-gray-600">
             Start managing multiple organizations with professional-grade compliance tools.
           </p>
-          <Button size="lg" onClick={handleLogin} className="mt-8" data-testid="button-start-now">
+          <Button size="lg" onClick={handleSignIn} className="mt-8" data-testid="button-start-now">
             Start Now
           </Button>
         </div>

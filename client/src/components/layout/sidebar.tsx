@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+import { Link, useLocation } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -11,33 +11,27 @@ import {
   Users 
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useOrganizations } from "@/hooks/useOrganizations";
 
-interface SidebarProps {
-  organizations: any[];
-  selectedOrgId?: string;
-  onOrgChange?: (orgId: string) => void;
-}
-
-export default function Sidebar({ organizations, selectedOrgId, onOrgChange }: SidebarProps) {
-  const [location] = useLocation();
+export default function Sidebar() {
+  const location = useLocation();
   const { user } = useAuth();
-
-  const selectedOrg = organizations.find(org => org.id === selectedOrgId);
+  const { organizations, selectedOrganization, selectedOrganizationId, setSelectedOrganizationId } = useOrganizations();
 
   const navigation = [
-    { name: "Dashboard", href: "/", icon: Home },
+    { name: "Dashboard", href: "/dashboard", icon: Home },
     { name: "Documents", href: "/documents", icon: FileText },
-    { name: "Risk Register", href: "/risks", icon: AlertTriangle },
+    { name: "Risk Register", href: "/risk-register", icon: AlertTriangle },
     { name: "Frameworks", href: "/frameworks", icon: Clipboard },
     { name: "Import/Export", href: "/import-export", icon: Upload },
     { name: "Users & Roles", href: "/users", icon: Users },
   ];
 
   const isActive = (href: string) => {
-    if (href === "/") {
-      return location === "/";
+    if (href === "/dashboard") {
+      return location.pathname === "/dashboard";
     }
-    return location.startsWith(href);
+    return location.pathname.startsWith(href);
   };
 
   const getUserInitials = () => {
@@ -67,18 +61,20 @@ export default function Sidebar({ organizations, selectedOrgId, onOrgChange }: S
         </div>
       </div>
       
-      {/* Organization Selector */}
+            {/* Organization Selector */}
       {organizations.length > 0 && (
-        <div className="p-4 border-b border-gray-200">
-          <label className="block text-xs font-medium text-gray-700 mb-2">Current Organization</label>
-          <Select value={selectedOrgId} onValueChange={onOrgChange}>
-            <SelectTrigger className="w-full">
+        <div className="px-4">
+          <Select 
+            value={selectedOrganizationId || undefined} 
+            onValueChange={setSelectedOrganizationId}
+          >
+            <SelectTrigger>
               <SelectValue placeholder="Select organization" />
             </SelectTrigger>
             <SelectContent>
-              {organizations.map((org) => (
+              {organizations.map(org => (
                 <SelectItem key={org.id} value={org.id}>
-                  {org.name}
+                  {org.name} {org.role && <span className="text-xs text-gray-500">({org.role})</span>}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -93,14 +89,14 @@ export default function Sidebar({ organizations, selectedOrgId, onOrgChange }: S
           const active = isActive(item.href);
           
           return (
-            <Link key={item.name} href={item.href}>
+            <Link key={item.name} to={item.href}>
               <div 
                 className={`flex items-center space-x-3 px-3 py-2 rounded-md transition-colors ${
                   active 
                     ? "bg-blue-50 text-primary font-medium" 
                     : "text-gray-700 hover:bg-gray-100"
                 }`}
-                data-testid={`nav-${item.href === "/" ? "dashboard" : item.href.substring(1).replace("/", "-")}`}
+                data-testid={`nav-${item.href === "/dashboard" ? "dashboard" : item.href.substring(1).replace("/", "-")}`}
               >
                 <Icon className="w-5 h-5" />
                 <span>{item.name}</span>
@@ -112,7 +108,7 @@ export default function Sidebar({ organizations, selectedOrgId, onOrgChange }: S
 
       {/* Organizations Link */}
       <div className="px-4">
-        <Link href="/organizations">
+        <Link to="/organizations">
           <div 
             className={`flex items-center space-x-3 px-3 py-2 rounded-md transition-colors ${
               isActive("/organizations") 
@@ -132,8 +128,8 @@ export default function Sidebar({ organizations, selectedOrgId, onOrgChange }: S
         <div className="bg-blue-50 p-3 rounded-md">
           <div className="text-xs font-medium text-gray-700">Current Role</div>
           <div className="text-sm font-semibold text-primary">
-            {selectedOrg?.role 
-              ? selectedOrg.role.replace("-", " ").replace(/\b\w/g, (l: string) => l.toUpperCase())
+            {selectedOrganization?.role 
+              ? selectedOrganization.role.replace("-", " ").replace(/\b\w/g, (l: string) => l.toUpperCase())
               : "Super Admin"
             }
           </div>

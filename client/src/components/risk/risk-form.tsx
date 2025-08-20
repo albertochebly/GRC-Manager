@@ -1,3 +1,4 @@
+import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -12,6 +13,12 @@ const riskSchema = z.object({
   riskId: z.string().min(1, "Risk ID is required"),
   title: z.string().min(1, "Risk title is required"),
   description: z.string().min(1, "Risk description is required"),
+  riskType: z.enum(["asset", "scenario"]),
+  assetCategory: z.string().optional(),
+  assetDescription: z.string().optional(),
+  confidentialityImpact: z.number().min(1).max(5),
+  integrityImpact: z.number().min(1).max(5),
+  availabilityImpact: z.number().min(1).max(5),
   impact: z.number().min(1).max(5),
   likelihood: z.number().min(1).max(5),
   mitigationPlan: z.string().min(1, "Mitigation plan is required"),
@@ -38,15 +45,32 @@ export default function RiskForm({ onSubmit, isLoading, initialData }: RiskFormP
       riskId: initialData?.riskId || "",
       title: initialData?.title || "",
       description: initialData?.description || "",
+      riskType: (initialData as any)?.riskType || "asset",
+      assetCategory: (initialData as any)?.assetCategory || "",
+      assetDescription: (initialData as any)?.assetDescription || "",
+      confidentialityImpact: (initialData as any)?.confidentialityImpact || 1,
+      integrityImpact: (initialData as any)?.integrityImpact || 1,
+      availabilityImpact: (initialData as any)?.availabilityImpact || 1,
       impact: initialData?.impact || 1,
       likelihood: initialData?.likelihood || 1,
       mitigationPlan: initialData?.mitigationPlan || "",
     },
   });
 
-  const impact = watch("impact");
+  const confidentialityImpact = watch("confidentialityImpact");
+  const integrityImpact = watch("integrityImpact");
+  const availabilityImpact = watch("availabilityImpact");
   const likelihood = watch("likelihood");
-  const riskScore = impact * likelihood;
+  const riskType = watch("riskType");
+  
+  // Calculate average impact from CIA values
+  const averageImpact = Math.round((confidentialityImpact + integrityImpact + availabilityImpact) / 3);
+  const riskScore = averageImpact * likelihood;
+  
+  // Update the impact field whenever CIA values change
+  React.useEffect(() => {
+    setValue("impact", averageImpact);
+  }, [confidentialityImpact, integrityImpact, availabilityImpact, averageImpact, setValue]);
 
   const getRiskLevel = (score: number): { level: string; color: string } => {
     if (score >= 20) return { level: "Critical", color: "text-red-600 bg-red-50" };
@@ -102,29 +126,167 @@ export default function RiskForm({ onSubmit, isLoading, initialData }: RiskFormP
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <Label htmlFor="impact">Impact (1-5)</Label>
-          <Select 
-            onValueChange={(value) => setValue("impact", parseInt(value))}
-            defaultValue={initialData?.impact?.toString() || "1"}
-          >
-            <SelectTrigger data-testid="select-risk-impact">
-              <SelectValue placeholder="Select impact level" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1">1 - Very Low</SelectItem>
-              <SelectItem value="2">2 - Low</SelectItem>
-              <SelectItem value="3">3 - Medium</SelectItem>
-              <SelectItem value="4">4 - High</SelectItem>
-              <SelectItem value="5">5 - Very High</SelectItem>
-            </SelectContent>
-          </Select>
-          {errors.impact && (
-            <p className="text-sm text-red-600 mt-1">{errors.impact.message}</p>
-          )}
+      <div>
+        <Label htmlFor="riskType">Risk Type</Label>
+        <Select 
+          onValueChange={(value) => setValue("riskType", value as "asset" | "scenario")}
+          defaultValue={(initialData as any)?.riskType || "asset"}
+        >
+          <SelectTrigger data-testid="select-risk-type">
+            <SelectValue placeholder="Select risk type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="asset">Asset-Based Risk</SelectItem>
+            <SelectItem value="scenario">Scenario-Based Risk</SelectItem>
+          </SelectContent>
+        </Select>
+        {errors.riskType && (
+          <p className="text-sm text-red-600 mt-1">{errors.riskType.message}</p>
+        )}
+      </div>
+
+      {/* Asset-specific fields - only show for asset-based risks */}
+      {riskType === "asset" && (
+        <>
+          <div>
+            <Label htmlFor="assetCategory">Asset Category</Label>
+            <Select 
+              onValueChange={(value) => setValue("assetCategory", value)}
+              defaultValue={(initialData as any)?.assetCategory || ""}
+            >
+              <SelectTrigger data-testid="select-asset-category">
+                <SelectValue placeholder="Select asset category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Application systems">Application systems</SelectItem>
+                <SelectItem value="Database">Database</SelectItem>
+                <SelectItem value="Operating System">Operating System</SelectItem>
+                <SelectItem value="Physical & Environmental Controls">Physical & Environmental Controls</SelectItem>
+                <SelectItem value="Business Documents">Business Documents</SelectItem>
+                <SelectItem value="Contractual Documents">Contractual Documents</SelectItem>
+                <SelectItem value="Policies, Procedures & Plans Manuals">Policies, Procedures & Plans Manuals</SelectItem>
+                <SelectItem value="Technical Documents / Manuals">Technical Documents / Manuals</SelectItem>
+                <SelectItem value="Skilled / Dedicated Function Employees">Skilled / Dedicated Function Employees</SelectItem>
+                <SelectItem value="Web Applications">Web Applications</SelectItem>
+                <SelectItem value="Internal Communication Services">Internal Communication Services</SelectItem>
+                <SelectItem value="Mobile devices">Mobile devices</SelectItem>
+                <SelectItem value="Network Infrastructure">Network Infrastructure</SelectItem>
+                <SelectItem value="Office Equipment">Office Equipment</SelectItem>
+                <SelectItem value="Personal Devices">Personal Devices</SelectItem>
+                <SelectItem value="Power Supply Equipment">Power Supply Equipment</SelectItem>
+                <SelectItem value="Security Measure (Software/Hardware)">Security Measure (Software/Hardware)</SelectItem>
+                <SelectItem value="Servers Function">Servers Function</SelectItem>
+                <SelectItem value="External Auditors">External Auditors</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.assetCategory && (
+              <p className="text-sm text-red-600 mt-1">{errors.assetCategory.message}</p>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="assetDescription">Asset Description</Label>
+            <Textarea
+              id="assetDescription"
+              {...register("assetDescription")}
+              placeholder="Describe the specific asset involved in this risk..."
+              rows={3}
+              data-testid="textarea-asset-description"
+            />
+            {errors.assetDescription && (
+              <p className="text-sm text-red-600 mt-1">{errors.assetDescription.message}</p>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* CIA Impact Breakdown */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Impact Assessment (CIA)</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <Label htmlFor="confidentialityImpact">Confidentiality (1-5)</Label>
+            <Select 
+              onValueChange={(value) => setValue("confidentialityImpact", parseInt(value))}
+              defaultValue={confidentialityImpact?.toString() || "1"}
+            >
+              <SelectTrigger data-testid="select-confidentiality-impact">
+                <SelectValue placeholder="Select confidentiality impact" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1 - Very Low</SelectItem>
+                <SelectItem value="2">2 - Low</SelectItem>
+                <SelectItem value="3">3 - Medium</SelectItem>
+                <SelectItem value="4">4 - High</SelectItem>
+                <SelectItem value="5">5 - Very High</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.confidentialityImpact && (
+              <p className="text-sm text-red-600 mt-1">{errors.confidentialityImpact.message}</p>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="integrityImpact">Integrity (1-5)</Label>
+            <Select 
+              onValueChange={(value) => setValue("integrityImpact", parseInt(value))}
+              defaultValue={integrityImpact?.toString() || "1"}
+            >
+              <SelectTrigger data-testid="select-integrity-impact">
+                <SelectValue placeholder="Select integrity impact" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1 - Very Low</SelectItem>
+                <SelectItem value="2">2 - Low</SelectItem>
+                <SelectItem value="3">3 - Medium</SelectItem>
+                <SelectItem value="4">4 - High</SelectItem>
+                <SelectItem value="5">5 - Very High</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.integrityImpact && (
+              <p className="text-sm text-red-600 mt-1">{errors.integrityImpact.message}</p>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="availabilityImpact">Availability (1-5)</Label>
+            <Select 
+              onValueChange={(value) => setValue("availabilityImpact", parseInt(value))}
+              defaultValue={availabilityImpact?.toString() || "1"}
+            >
+              <SelectTrigger data-testid="select-availability-impact">
+                <SelectValue placeholder="Select availability impact" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1 - Very Low</SelectItem>
+                <SelectItem value="2">2 - Low</SelectItem>
+                <SelectItem value="3">3 - Medium</SelectItem>
+                <SelectItem value="4">4 - High</SelectItem>
+                <SelectItem value="5">5 - Very High</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.availabilityImpact && (
+              <p className="text-sm text-red-600 mt-1">{errors.availabilityImpact.message}</p>
+            )}
+          </div>
         </div>
 
+        {/* Calculated Average Impact (read-only) */}
+        <div className="bg-gray-50 p-3 rounded-md">
+          <Label className="text-sm text-gray-600">Calculated Overall Impact</Label>
+          <div className="text-lg font-semibold text-gray-800">
+            {averageImpact} - {averageImpact === 1 ? "Very Low" : 
+                              averageImpact === 2 ? "Low" : 
+                              averageImpact === 3 ? "Medium" : 
+                              averageImpact === 4 ? "High" : "Very High"}
+          </div>
+          <div className="text-xs text-gray-500">
+            Average of C:{confidentialityImpact}, I:{integrityImpact}, A:{availabilityImpact}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <Label htmlFor="likelihood">Likelihood (1-5)</Label>
           <Select 
@@ -152,7 +314,7 @@ export default function RiskForm({ onSubmit, isLoading, initialData }: RiskFormP
       <Card>
         <CardHeader>
           <CardTitle>Risk Assessment</CardTitle>
-          <CardDescription>Calculated risk score and level based on impact and likelihood</CardDescription>
+          <CardDescription>Calculated risk score and level based on CIA impact average and likelihood</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between">

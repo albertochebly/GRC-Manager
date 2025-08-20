@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,6 +14,8 @@ const documentSchema = z.object({
   documentType: z.string().min(1, "Document type is required"),
   version: z.string().min(1, "Version is required"),
   content: z.string().min(1, "Document content is required"),
+  status: z.string().default("draft"),
+  framework: z.string().optional(),
 });
 
 type DocumentForm = z.infer<typeof documentSchema>;
@@ -21,16 +23,16 @@ type DocumentForm = z.infer<typeof documentSchema>;
 interface DocumentFormProps {
   onSubmit: (data: DocumentForm) => void;
   isLoading?: boolean;
-  initialData?: Partial<DocumentForm>;
+  initialData?: Partial<DocumentForm> & { id?: string };
+  userRole?: string;
 }
 
-export default function DocumentForm({ onSubmit, isLoading, initialData }: DocumentFormProps) {
-  const [content, setContent] = useState(initialData?.content || "");
-
+export default function DocumentForm({ onSubmit, isLoading, initialData, userRole }: DocumentFormProps) {
   const {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<DocumentForm>({
     resolver: zodResolver(documentSchema),
@@ -39,21 +41,34 @@ export default function DocumentForm({ onSubmit, isLoading, initialData }: Docum
       documentType: initialData?.documentType || "",
       version: initialData?.version || "1.0",
       content: initialData?.content || "",
+      framework: initialData?.framework || "",
     },
   });
 
+  const content = watch("content");
+
+  // Initialize form values when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      Object.entries(initialData).forEach(([key, value]) => {
+        if (value !== undefined) {
+          setValue(key as keyof DocumentForm, value);
+        }
+      });
+    }
+  }, [initialData, setValue]);
+
   const handleFormSubmit = (data: DocumentForm) => {
-    onSubmit({ ...data, content });
+    onSubmit(data);
   };
 
   const handleContentChange = (newContent: string) => {
-    setContent(newContent);
     setValue("content", newContent, { shouldValidate: true });
   };
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6" data-testid="document-form">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div>
           <Label htmlFor="title">Document Title</Label>
           <Input
@@ -69,7 +84,10 @@ export default function DocumentForm({ onSubmit, isLoading, initialData }: Docum
 
         <div>
           <Label htmlFor="documentType">Document Type</Label>
-          <Select onValueChange={(value) => setValue("documentType", value)}>
+          <Select 
+            value={watch("documentType")} 
+            onValueChange={(value) => setValue("documentType", value)}
+          >
             <SelectTrigger data-testid="select-document-type">
               <SelectValue placeholder="Select document type" />
             </SelectTrigger>
@@ -83,6 +101,37 @@ export default function DocumentForm({ onSubmit, isLoading, initialData }: Docum
           </Select>
           {errors.documentType && (
             <p className="text-sm text-red-600 mt-1">{errors.documentType.message}</p>
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="status">Status</Label>
+          <Select
+            value={watch("status") || "draft"}
+            onValueChange={(value: "draft" | "pending" | "published" | "archived") => 
+              setValue("status", value)
+            }
+          >
+            <SelectTrigger data-testid="select-document-status">
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="draft">Draft</SelectItem>
+              {/* Contributors can submit for review */}
+              {(userRole === "contributor" || userRole === "approver" || userRole === "admin") && (
+                <SelectItem value="pending">Pending Review</SelectItem>
+              )}
+              {/* Only approvers and admins can publish or archive */}
+              {(userRole === "approver" || userRole === "admin") && (
+                <>
+                  <SelectItem value="published">Published</SelectItem>
+                  <SelectItem value="archived">Archived</SelectItem>
+                </>
+              )}
+            </SelectContent>
+          </Select>
+          {errors.status && (
+            <p className="text-sm text-red-600 mt-1">{errors.status.message}</p>
           )}
         </div>
       </div>
@@ -102,26 +151,26 @@ export default function DocumentForm({ onSubmit, isLoading, initialData }: Docum
 
       <div>
         <Label htmlFor="content">Document Content</Label>
-        <RichTextEditor
-          content={content}
-          onChange={handleContentChange}
-          placeholder="Enter the document content..."
-        />
+        <div className="min-h-[300px]">
+          <RichTextEditor
+            key={initialData?.id} // Force re-render when document changes
+            value={content || ''}
+            onChange={handleContentChange}
+            placeholder="Enter the document content..."
+          />
+        </div>
         {errors.content && (
           <p className="text-sm text-red-600 mt-1">{errors.content.message}</p>
         )}
       </div>
 
       <div className="flex justify-end space-x-4 pt-6 border-t">
-        <Button type="button" variant="outline">
-          Save as Draft
-        </Button>
         <Button 
           type="submit" 
           disabled={isLoading}
           data-testid="button-submit-document"
         >
-          {isLoading ? "Creating..." : "Create Document"}
+          {isLoading ? "Saving..." : initialData?.id ? "Save Changes" : "Create Document"}
         </Button>
       </div>
     </form>

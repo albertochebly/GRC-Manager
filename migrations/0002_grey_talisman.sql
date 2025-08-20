@@ -1,0 +1,1 @@
+ALTER TABLE "risks" ADD COLUMN "risk_type" varchar(50) DEFAULT 'asset';

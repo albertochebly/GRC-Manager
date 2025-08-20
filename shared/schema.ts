@@ -15,6 +15,18 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// User creation schema
+export const createUserSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  email: z.string().email(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  role: z.enum(["admin", "contributor", "approver", "read-only"]),
+});
+
+export type CreateUser = z.infer<typeof createUserSchema>;
+
 // Session storage table (required for Replit Auth)
 export const sessions = pgTable(
   "sessions",
@@ -29,7 +41,9 @@ export const sessions = pgTable(
 // User storage table (required for Replit Auth)
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: varchar("username").unique(),
   email: varchar("email").unique(),
+  passwordHash: varchar("password_hash"),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
@@ -53,6 +67,7 @@ export const organizationUsers = pgTable("organization_users", {
   organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   userId: varchar("user_id").notNull().references(() => users.id),
   role: varchar("role", { length: 50 }).notNull().default("read-only"), // admin, contributor, approver, read-only
+  invitedBy: varchar("invited_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -74,6 +89,17 @@ export const controls = pgTable("controls", {
   title: varchar("title", { length: 500 }).notNull(),
   description: text("description"),
   category: varchar("category", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Framework control templates - defines what documents should be created for each control
+export const controlTemplates = pgTable("control_templates", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  controlId: uuid("control_id").notNull().references(() => controls.id, { onDelete: "cascade" }),
+  documentTitle: varchar("document_title", { length: 500 }).notNull(),
+  documentType: varchar("document_type", { length: 100 }).notNull(), // policy, standard, procedure, guideline, plan
+  documentDescription: text("document_description"),
+  contentTemplate: text("content_template"), // Optional template content
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -131,7 +157,13 @@ export const risks = pgTable("risks", {
   riskId: varchar("risk_id", { length: 100 }).notNull(),
   title: varchar("title", { length: 500 }).notNull(),
   description: text("description"),
-  impact: integer("impact").notNull(), // 1-5 scale
+  riskType: varchar("risk_type", { length: 50 }).default("asset"), // asset, scenario
+  assetCategory: varchar("asset_category", { length: 100 }), // only for asset-based risks
+  assetDescription: text("asset_description"), // only for asset-based risks
+  confidentialityImpact: integer("confidentiality_impact").notNull(), // 1-5 scale
+  integrityImpact: integer("integrity_impact").notNull(), // 1-5 scale
+  availabilityImpact: integer("availability_impact").notNull(), // 1-5 scale
+  impact: integer("impact").notNull(), // 1-5 scale (calculated average of CIA)
   likelihood: integer("likelihood").notNull(), // 1-5 scale
   riskScore: decimal("risk_score", { precision: 3, scale: 1 }), // calculated: impact * likelihood
   mitigationPlan: text("mitigation_plan"),
@@ -212,6 +244,14 @@ export const controlsRelations = relations(controls, ({ one, many }) => ({
   }),
   documentControls: many(documentControls),
   riskControls: many(riskControls),
+  controlTemplates: many(controlTemplates),
+}));
+
+export const controlTemplatesRelations = relations(controlTemplates, ({ one }) => ({
+  control: one(controls, {
+    fields: [controlTemplates.controlId],
+    references: [controls.id],
+  }),
 }));
 
 export const documentsRelations = relations(documents, ({ one, many }) => ({
@@ -262,6 +302,9 @@ export type Framework = typeof frameworks.$inferSelect;
 
 export type InsertControl = typeof controls.$inferInsert;
 export type Control = typeof controls.$inferSelect;
+
+export type InsertControlTemplate = typeof controlTemplates.$inferInsert;
+export type ControlTemplate = typeof controlTemplates.$inferSelect;
 
 export type InsertDocument = typeof documents.$inferInsert;
 export type Document = typeof documents.$inferSelect;

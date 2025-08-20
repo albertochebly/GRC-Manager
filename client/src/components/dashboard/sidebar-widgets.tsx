@@ -5,11 +5,12 @@ import { Shield, CheckCircle, AlertCircle, Activity } from "lucide-react";
 
 interface SidebarWidgetsProps {
   frameworks: any[];
+  documents: any[];
   selectedOrgName: string;
   isLoading: boolean;
 }
 
-export default function SidebarWidgets({ frameworks, selectedOrgName, isLoading }: SidebarWidgetsProps) {
+export default function SidebarWidgets({ frameworks, documents, selectedOrgName, isLoading }: SidebarWidgetsProps) {
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -29,9 +30,15 @@ export default function SidebarWidgets({ frameworks, selectedOrgName, isLoading 
   }
 
   const activeFrameworks = frameworks.filter(f => f.isActive);
-  const complianceScore = activeFrameworks.length > 0 ? 
-    Math.round((activeFrameworks.reduce((acc, f) => acc + (f.completedControls || 0), 0) / 
-               activeFrameworks.reduce((acc, f) => acc + (f.totalControls || 1), 0)) * 100) : 0;
+  
+  // Calculate compliance score based on document completion
+  // Completed documents are those with status 'published' or 'archived'
+  const completedDocuments = documents.filter(doc => 
+    doc.status === 'published' || doc.status === 'archived'
+  ).length;
+  const totalDocuments = documents.length;
+  const complianceScore = totalDocuments > 0 ? 
+    Math.round((completedDocuments / totalDocuments) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -87,9 +94,6 @@ export default function SidebarWidgets({ frameworks, selectedOrgName, isLoading 
                 <div key={framework.id} className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-sm">{framework.name}</p>
-                    <p className="text-xs text-gray-500">
-                      {framework.completedControls || 0}/{framework.totalControls || 0} controls
-                    </p>
                   </div>
                   <CheckCircle className="h-4 w-4 text-green-500" />
                 </div>
@@ -101,27 +105,6 @@ export default function SidebarWidgets({ frameworks, selectedOrgName, isLoading 
               )}
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <Button variant="outline" size="sm" className="w-full justify-start" data-testid="button-create-document">
-            <Shield className="h-4 w-4 mr-2" />
-            Create Policy
-          </Button>
-          <Button variant="outline" size="sm" className="w-full justify-start" data-testid="button-add-risk">
-            <AlertCircle className="h-4 w-4 mr-2" />
-            Add Risk
-          </Button>
-          <Button variant="outline" size="sm" className="w-full justify-start" data-testid="button-review-approvals">
-            <CheckCircle className="h-4 w-4 mr-2" />
-            Review Approvals
-          </Button>
         </CardContent>
       </Card>
     </div>

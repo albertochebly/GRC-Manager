@@ -12,14 +12,28 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  console.log('Making API request:', { method, url, data });
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers: {
+      ...(data ? { "Content-Type": "application/json" } : {}),
+      // Add cache-busting headers
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    },
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
 
-  await throwIfResNotOk(res);
+  if (!res.ok) {
+    console.error('API request failed:', { status: res.status, statusText: res.statusText });
+    const text = await res.text();
+    console.error('Error response:', text);
+    throw new Error(`${res.status}: ${text || res.statusText}`);
+  }
+
+  console.log('API request succeeded:', { status: res.status });
   return res;
 }
 
@@ -46,8 +60,9 @@ export const queryClient = new QueryClient({
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
-      refetchOnWindowFocus: false,
-      staleTime: Infinity,
+      refetchOnWindowFocus: true,
+      staleTime: 0,
+      gcTime: 0,
       retry: false,
     },
     mutations: {

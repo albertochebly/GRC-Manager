@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import type { Organization } from "@shared/schema";
+import { useOrganizations } from "@/hooks/useOrganizations";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
@@ -14,11 +14,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Building, Users, Calendar } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Plus, Building, Users, Calendar, Trash2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { format } from "date-fns";
 
 const createOrgSchema = z.object({
   name: z.string().min(1, "Organization name is required"),
@@ -29,8 +38,10 @@ type CreateOrgForm = z.infer<typeof createOrgSchema>;
 
 export default function Organizations() {
   const { toast } = useToast();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
+  const { organizations, isLoading: orgsLoading, refetch: refetchOrgs } = useOrganizations();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [orgToDelete, setOrgToDelete] = useState<string | null>(null);
 
   const {
     register,
@@ -41,33 +52,13 @@ export default function Organizations() {
     resolver: zodResolver(createOrgSchema),
   });
 
-  // Get user organizations
-  const { data: organizations = [], isLoading: orgsLoading } = useQuery<Organization[]>({
-    queryKey: ["/api/organizations"],
-    enabled: isAuthenticated && !isLoading,
-    retry: (failureCount, error) => {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return false;
-      }
-      return failureCount < 3;
-    },
-  });
-
   const createOrgMutation = useMutation({
     mutationFn: async (data: CreateOrgForm) => {
       const response = await apiRequest("POST", "/api/organizations", data);
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/organizations"] });
+    onSuccess: async () => {
+      await refetchOrgs();
       setIsDialogOpen(false);
       reset();
       toast({
@@ -82,171 +73,189 @@ export default function Organizations() {
           description: "You are logged out. Logging in again...",
           variant: "destructive",
         });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
+        window.location.href = "/api/login";
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to create organization",
+          variant: "destructive",
+        });
       }
-      toast({
-        title: "Error",
-        description: "Failed to create organization",
-        variant: "destructive",
-      });
     },
   });
 
-  const onSubmit = (data: CreateOrgForm) => {
-    createOrgMutation.mutate(data);
-  };
+  const deleteOrgMutation = useMutation({
+    mutationFn: async (orgId: string) => {
+      const response = await apiRequest("DELETE", `/api/organizations/${orgId}`);
+      return response.json();
+    },
+    onSuccess: async () => {
+      await refetchOrgs();
+      toast({
+        title: "Organization deleted",
+        description: "The organization has been successfully deleted",
+      });
+      setOrgToDelete(null);
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error as Error)) {
+        toast({
+          title: "Permission denied",
+          description: "You don't have permission to delete this organization",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to delete organization",
+          variant: "destructive",
+        });
+      }
+      setOrgToDelete(null);
+    },
+  });
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  const onSubmit = handleSubmit((data: CreateOrgForm) => {
+    createOrgMutation.mutate(data);
+  });
+
+  // Temporarily remove auth check to debug API calls
+  console.log('Organizations component loaded, isAuthenticated:', isAuthenticated);
+  console.log('Organizations data:', organizations);
+  console.log('Is loading:', orgsLoading);
 
   return (
-    <div className="min-h-screen flex bg-gray-50" data-testid="organizations-page">
-      <Sidebar organizations={organizations} />
-      
-      <div className="flex-1 ml-64">
+    <div className="flex h-screen">
+      <Sidebar />
+      <div className="flex-1 pl-64">
         <Header />
-        
-        <main className="p-6">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Organizations</h1>
-              <p className="text-gray-600 mt-2">Manage your client organizations and their settings</p>
-            </div>
-            
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button data-testid="button-create-organization">
-                  <Plus className="w-4 h-4 mr-2" />
-                  New Organization
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <form onSubmit={handleSubmit(onSubmit)}>
-                  <DialogHeader>
-                    <DialogTitle>Create New Organization</DialogTitle>
-                    <DialogDescription>
-                      Add a new client organization to manage their GRC requirements.
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <div className="grid gap-4 py-4">
-                    <div>
-                      <Label htmlFor="name">Organization Name</Label>
-                      <Input
-                        id="name"
-                        {...register("name")}
-                        placeholder="Acme Corporation"
-                        data-testid="input-organization-name"
-                      />
-                      {errors.name && (
-                        <p className="text-sm text-red-600 mt-1">{errors.name.message}</p>
-                      )}
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="description">Description (Optional)</Label>
-                      <Textarea
-                        id="description"
-                        {...register("description")}
-                        placeholder="Brief description of the organization..."
-                        data-testid="textarea-organization-description"
-                      />
-                    </div>
-                  </div>
-                  
-                  <DialogFooter>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => setIsDialogOpen(false)}
-                      data-testid="button-cancel"
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      type="submit" 
-                      disabled={createOrgMutation.isPending}
-                      data-testid="button-submit-organization"
-                    >
-                      {createOrgMutation.isPending ? "Creating..." : "Create Organization"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          {orgsLoading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : organizations.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-12">
-                <Building className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Organizations</h3>
-                <p className="text-gray-600 mb-6">Get started by creating your first client organization.</p>
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button data-testid="button-create-first-organization">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Your First Organization
-                    </Button>
-                  </DialogTrigger>
-                </Dialog>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {organizations.map((org: any) => (
-                <Card key={org.id} className="hover:shadow-md transition-shadow" data-testid={`card-organization-${org.id}`}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="flex items-center">
-                        <Building className="w-5 h-5 text-primary mr-2" />
-                        {org.name}
-                      </CardTitle>
-                      {org.role && (
-                        <Badge variant={org.role === "admin" ? "default" : "secondary"}>
-                          {org.role}
-                        </Badge>
-                      )}
-                    </div>
-                    <CardDescription>{org.description || "No description provided"}</CardDescription>
-                  </CardHeader>
-                  
-                  <CardContent>
-                    <div className="space-y-2 text-sm text-gray-600">
-                      <div className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        Created {format(new Date(org.createdAt), 'MMM dd, yyyy')}
+        <main className="bg-gray-50 flex-1 p-6 overflow-y-auto">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex justify-between items-center mb-6">
+              {/* Title now handled by Header component */}
+              <div></div>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Organization
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <form onSubmit={onSubmit}>
+                    <DialogHeader>
+                      <DialogTitle>Create Organization</DialogTitle>
+                      <DialogDescription>
+                        Add a new organization to manage its GRC processes.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div>
+                        <Label htmlFor="name">Organization Name</Label>
+                        <Input
+                          id="name"
+                          {...register("name")}
+                          placeholder="Enter organization name"
+                        />
+                        {errors.name && (
+                          <p className="text-sm text-red-500 mt-1">
+                            {errors.name.message}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <Label htmlFor="description">Description (Optional)</Label>
+                        <Textarea
+                          id="description"
+                          {...register("description")}
+                          placeholder="Enter organization description"
+                        />
                       </div>
                     </div>
-                    
-                    <div className="mt-4 flex space-x-2">
-                      <Button size="sm" variant="outline" className="flex-1">
-                        View Details
+                    <DialogFooter>
+                      <Button type="submit" disabled={createOrgMutation.isPending}>
+                        {createOrgMutation.isPending ? "Creating..." : "Create"}
                       </Button>
-                      <Button size="sm" className="flex-1">
-                        Manage
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </div>
-          )}
+
+            {orgsLoading ? (
+              <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                {[1, 2, 3].map((n) => (
+                  <Card key={n} className="animate-pulse">
+                    <CardHeader>
+                      <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/2 mt-2"></div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="h-4 bg-gray-200 rounded"></div>
+                        <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                {organizations.map((org) => (
+                  <Card key={org.id}>
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="flex items-center gap-2">
+                          <Building className="w-5 h-5" />
+                          {org.name}
+                        </CardTitle>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setOrgToDelete(org.id)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <CardDescription>{org.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Users className="w-4 h-4" />
+                        <span>Role: {org.role}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600 mt-2">
+                        <Calendar className="w-4 h-4" />
+                        <span>Created: {new Date(org.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <AlertDialog open={!!orgToDelete} onOpenChange={(isOpen) => !isOpen && setOrgToDelete(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Organization</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this organization? This action will also delete all associated data including documents, frameworks, and risks. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-red-500 hover:bg-red-600"
+                  disabled={deleteOrgMutation.isPending}
+                  onClick={() => orgToDelete && deleteOrgMutation.mutate(orgToDelete)}
+                >
+                  {deleteOrgMutation.isPending ? "Deleting..." : "Delete Organization"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </main>
       </div>
     </div>

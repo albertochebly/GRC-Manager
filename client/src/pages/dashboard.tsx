@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import type { Organization } from "@shared/schema";
+import { useOrganizations } from "@/hooks/useOrganizations";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import Sidebar from "@/components/layout/sidebar";
@@ -13,25 +13,19 @@ import SidebarWidgets from "@/components/dashboard/sidebar-widgets";
 export default function Dashboard() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
-  const [selectedOrgId, setSelectedOrgId] = useState<string>("");
-
-  // Get user organizations
-  const { data: organizations = [] } = useQuery<Organization[]>({
-    queryKey: ["/api/organizations"],
-    enabled: isAuthenticated && !isLoading,
-  });
-
-  // Set default organization
-  useEffect(() => {
-    if (organizations.length > 0 && !selectedOrgId) {
-      setSelectedOrgId(organizations[0].id);
-    }
-  }, [organizations, selectedOrgId]);
+  const { selectedOrganizationId, organizations } = useOrganizations();
 
   // Get dashboard stats for selected organization
   const { data: stats, isLoading: statsLoading } = useQuery<any>({
-    queryKey: ["/api/organizations", selectedOrgId, "stats"],
-    enabled: !!selectedOrgId,
+    queryKey: ["/api/organizations", selectedOrganizationId, "stats"],
+    queryFn: async (): Promise<any> => {
+      if (!selectedOrganizationId) throw new Error('No organization selected');
+      const response = await fetch(`/api/organizations/${selectedOrganizationId}/stats`);
+      if (!response.ok) throw new Error('Failed to fetch stats');
+      return response.json();
+    },
+    enabled: !!selectedOrganizationId && isAuthenticated && !isLoading,
+    staleTime: 0, // Always refetch when query is accessed
     retry: (failureCount, error) => {
       if (isUnauthorizedError(error as Error)) {
         toast({
@@ -48,10 +42,36 @@ export default function Dashboard() {
     },
   });
 
-  // Get pending approvals
-  const { data: pendingApprovals = [] } = useQuery<any[]>({
-    queryKey: ["/api/organizations", selectedOrgId, "approvals", "pending"],
-    enabled: !!selectedOrgId,
+  // Get pending approvals (documents with pending status)
+  const { data: recentActivities = [] } = useQuery<any[]>({
+    queryKey: ["/api/organizations", selectedOrganizationId, "documents", "pending"],
+    queryFn: async (): Promise<any[]> => {
+      if (!selectedOrganizationId) return [];
+      const response = await fetch(`/api/organizations/${selectedOrganizationId}/documents`);
+      if (!response.ok) throw new Error('Failed to fetch documents');
+      const allDocuments = await response.json();
+      // Filter to only pending status documents
+      return allDocuments.filter((doc: any) => doc.status === 'pending');
+    },
+    enabled: !!selectedOrganizationId && isAuthenticated && !isLoading,
+    retry: (failureCount, error) => {
+      if (isUnauthorizedError(error as Error)) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+  });
+
+  // Get all documents for compliance calculation
+  const { data: allDocuments = [] } = useQuery<any[]>({
+    queryKey: ["/api/organizations", selectedOrganizationId, "documents", "all"],
+    queryFn: async (): Promise<any[]> => {
+      if (!selectedOrganizationId) return [];
+      const response = await fetch(`/api/organizations/${selectedOrganizationId}/documents`);
+      if (!response.ok) throw new Error('Failed to fetch documents');
+      return response.json();
+    },
+    enabled: !!selectedOrganizationId && isAuthenticated && !isLoading,
     retry: (failureCount, error) => {
       if (isUnauthorizedError(error as Error)) {
         return false;
@@ -62,8 +82,13 @@ export default function Dashboard() {
 
   // Get organization frameworks
   const { data: frameworks = [] } = useQuery<any[]>({
-    queryKey: ["/api/organizations", selectedOrgId, "frameworks"],
-    enabled: !!selectedOrgId,
+    queryKey: ["/api/organizations", selectedOrganizationId, "frameworks"],
+    queryFn: async () => {
+      const response = await fetch(`/api/organizations/${selectedOrganizationId}/frameworks`);
+      if (!response.ok) throw new Error('Failed to fetch frameworks');
+      return response.json();
+    },
+    enabled: !!selectedOrganizationId && isAuthenticated && !isLoading,
     retry: (failureCount, error) => {
       if (isUnauthorizedError(error as Error)) {
         return false;
@@ -100,30 +125,34 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen flex bg-gray-50" data-testid="dashboard-page">
-      <Sidebar 
-        organizations={organizations} 
-        selectedOrgId={selectedOrgId}
-        onOrgChange={setSelectedOrgId}
-      />
+      <Sidebar />
       
       <div className="flex-1 ml-64">
         <Header />
         
         <main className="p-6">
-          {statsLoading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="mb-6">
+            {/* Title and description now handled by Header component */}
+          </div>
+
+          <StatsGrid stats={stats} isLoading={statsLoading} />
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+            <div className="lg:col-span-2">
+              <ActivityPanel 
+                pendingApprovals={recentActivities} 
+                isLoading={statsLoading}
+              />
             </div>
-          ) : (
-            <>
-              <StatsGrid stats={stats} />
-              
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
-                <ActivityPanel pendingApprovals={pendingApprovals} />
-                <SidebarWidgets frameworks={frameworks} />
-              </div>
-            </>
-          )}
+            <div>
+              <SidebarWidgets 
+                frameworks={frameworks} 
+                documents={allDocuments}
+                selectedOrgName={organizations.find(org => org.id === selectedOrganizationId)?.name || ""}
+                isLoading={statsLoading}
+              />
+            </div>
+          </div>
         </main>
       </div>
     </div>

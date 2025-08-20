@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { 
@@ -21,14 +21,28 @@ interface RichTextEditorProps {
 
 export default function RichTextEditor({ value, onChange, placeholder = "Enter text...", className = "" }: RichTextEditorProps) {
   const [isFocused, setIsFocused] = useState(false);
+  const editorRef = useRef<HTMLDivElement>(null);
+  
+  // Initialize the editor content
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.innerHTML !== value) {
+      editorRef.current.innerHTML = value;
+    }
+  }, [value]);
 
   const handleCommand = (command: string, value?: string) => {
-    document.execCommand(command, false, value);
+    if (editorRef.current) {
+      editorRef.current.focus();
+      document.execCommand(command, false, value);
+      onChange(editorRef.current.innerHTML);
+    }
   };
 
   const handleContentChange = (event: React.FormEvent<HTMLDivElement>) => {
     const content = event.currentTarget.innerHTML;
-    onChange(content);
+    if (content !== value) {
+      onChange(content);
+    }
   };
 
   return (
@@ -113,6 +127,7 @@ export default function RichTextEditor({ value, onChange, placeholder = "Enter t
       </div>
       <CardContent className="p-4">
         <div
+          ref={editorRef}
           contentEditable
           className={`min-h-[200px] w-full outline-none prose prose-sm max-w-none ${
             isFocused ? 'ring-2 ring-ring ring-offset-2' : ''
@@ -120,7 +135,6 @@ export default function RichTextEditor({ value, onChange, placeholder = "Enter t
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           onInput={handleContentChange}
-          dangerouslySetInnerHTML={{ __html: value }}
           data-placeholder={placeholder}
           data-testid="editor-content"
         />
