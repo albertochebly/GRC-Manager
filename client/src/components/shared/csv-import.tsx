@@ -12,6 +12,7 @@ interface CSVImportProps {
   templateFilename?: string;
   title: string;
   description: string;
+  expectedColumns?: string[];
 }
 
 export default function CSVImport({ onImport, templateData, templateFilename = "template.csv", title, description }: CSVImportProps) {

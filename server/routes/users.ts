@@ -28,12 +28,12 @@ const userRouter = Router();
 // Get all organization users
 userRouter.get("/:orgId/users", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    if (!req.user?.claims) {
+    if (!req.user?.id) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
     const { orgId } = req.params;
-    const userId = req.user.claims.sub;
+    const userId = req.user.id;
 
     // Check if user has access to organization
     const [userAccess] = await db.select()
@@ -95,12 +95,12 @@ userRouter.get("/:orgId/users", isAuthenticated, async (req: Request, res: Respo
 // Create user
 userRouter.post("/:orgId/users", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    if (!req.user?.claims) {
+    if (!req.user?.id) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
     const { orgId } = req.params;
-    const adminId = req.user.claims.sub;
+    const adminId = req.user.id;
 
     // Check if user has admin role
     const [adminAccess] = await db.select()
@@ -177,12 +177,12 @@ userRouter.post("/:orgId/users", isAuthenticated, async (req: Request, res: Resp
 
 // Update user
 userRouter.put("/:orgId/users/:userId", isAuthenticated, async (req: Request, res: Response) => {
-  if (!req.user?.claims) {
+  if (!req.user?.id) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
   const { orgId, userId } = req.params;
-  const updatingUserId = req.user.claims.sub;
+  const updatingUserId = req.user.id;
 
   try {
     // Check if user has access to organization
@@ -299,12 +299,12 @@ userRouter.put("/:orgId/users/:userId", isAuthenticated, async (req: Request, re
 
 // Delete user from organization
 userRouter.delete("/:orgId/users/:userId", isAuthenticated, async (req: Request, res: Response) => {
-  if (!req.user?.claims) {
+  if (!req.user?.id) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
   const { orgId, userId } = req.params;
-  const deletingUserId = req.user.claims.sub;
+  const deletingUserId = req.user.id;
 
   try {
     // Check if user has admin access to organization
@@ -364,12 +364,12 @@ userRouter.delete("/:orgId/users/:userId", isAuthenticated, async (req: Request,
 // Alias for invite endpoint (same as creating a user)
 userRouter.post("/:orgId/users/invite", isAuthenticated, async (req: Request, res: Response) => {
   try {
-    if (!req.user?.claims) {
+    if (!req.user?.id) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
     const { orgId } = req.params;
-    const adminId = req.user.claims.sub;
+    const adminId = req.user.id;
 
     // Check if user has admin role
     const [adminAccess] = await db.select()

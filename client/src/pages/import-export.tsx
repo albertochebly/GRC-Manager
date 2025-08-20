@@ -88,11 +88,7 @@ export default function ImportExport() {
 
   return (
     <div className="min-h-screen flex bg-gray-50" data-testid="import-export-page">
-      <Sidebar 
-        organizations={organizations} 
-        selectedOrgId={selectedOrgId}
-        onOrgChange={setSelectedOrgId}
-      />
+      <Sidebar />
       
       <div className="flex-1 ml-64">
         <Header />
@@ -132,6 +128,8 @@ export default function ImportExport() {
                     </CardHeader>
                     <CardContent>
                       <CSVImport
+                        title="Import Framework Controls"
+                        description="Import cybersecurity framework controls from CSV"
                         onImport={(data: any[]) => {
                           toast({
                             title: "Import Started",
@@ -156,6 +154,8 @@ export default function ImportExport() {
                     </CardHeader>
                     <CardContent>
                       <CSVImport
+                        title="Import Risk Entries"
+                        description="Import risk entries from CSV"
                         onImport={(data: any[]) => {
                           toast({
                             title: "Import Started",
@@ -180,6 +180,8 @@ export default function ImportExport() {
                     </CardHeader>
                     <CardContent>
                       <CSVImport
+                        title="Import Documents"
+                        description="Import GRC documents from CSV"
                         onImport={(data: any[]) => {
                           toast({
                             title: "Import Started",

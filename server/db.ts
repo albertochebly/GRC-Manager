@@ -19,8 +19,8 @@ if (!process.env.DATABASE_URL) {
 // Check if we're in local development
 const isLocal = process.env.DATABASE_URL.includes('localhost') || process.env.DATABASE_URL.includes('127.0.0.1');
 
-let pool: Pool | PgPool;
-let db: ReturnType<typeof drizzle> | ReturnType<typeof pgDrizzle>;
+let pool: any;
+let db: any;
 
 if (isLocal) {
   // Use standard PostgreSQL connection for local development

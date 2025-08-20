@@ -296,6 +296,10 @@ export class DatabaseStorage implements IStorage {
           status: documents.status,
           documentType: documents.documentType,
           organizationId: documents.organizationId,
+          createdBy: documents.createdBy,
+          ownerId: documents.ownerId,
+          approvedBy: documents.approvedBy,
+          approvedAt: documents.approvedAt,
           createdAt: documents.createdAt,
           updatedAt: documents.updatedAt
         })

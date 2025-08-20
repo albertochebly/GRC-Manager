@@ -6,6 +6,38 @@ import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { z } from "zod";
 
+// Define User type that matches what we actually use
+export interface User {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  username?: string;
+  claims?: any;
+}
+
+// Extend Express types
+declare global {
+  namespace Express {
+    interface User {
+      id: string;
+      email: string;
+      firstName?: string;
+      lastName?: string;
+      username?: string;
+      claims?: any;
+    }
+  }
+}
+
+// Extend session types
+declare module 'express-session' {
+  interface SessionData {
+    isAuthenticated?: boolean;
+    user?: Express.User;
+  }
+}
+
 // Register schema to validate registration requests
 const registerSchema = z.object({
   email: z.string().email(),
@@ -13,25 +45,6 @@ const registerSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional()
 });
-
-interface AuthenticatedRequest extends Request {
-  session: session.Session & {
-    isAuthenticated?: boolean;
-    user?: Express.User;
-    passport?: {
-      user: Express.User;
-    };
-  };
-  user?: Express.User;
-  logIn: {
-    (user: Express.User, done: (err: any) => void): void;
-    (user: Express.User, options: any, done: (err: any) => void): void;
-  };
-  logout: {
-    (options: any, done: (err: any) => void): void;
-    (done: (err: any) => void): void;
-  };
-}
 
 // Session configuration
 export function getSession() {
@@ -57,15 +70,14 @@ export function getSession() {
 
 // Authentication middleware
 export function isAuthenticated(req: Request, res: Response, next: NextFunction) {
-  const authReq = req as AuthenticatedRequest;
   console.log('Auth check:', {
-    sessionExists: !!authReq.session,
-    isAuthenticated: authReq.session?.isAuthenticated,
-    hasUser: !!authReq.user,
-    sessionID: authReq.sessionID
+    sessionExists: !!req.session,
+    isAuthenticated: req.session?.isAuthenticated,
+    hasUser: !!req.user,
+    sessionID: req.sessionID
   });
   
-  if (!authReq.session?.isAuthenticated || !authReq.user) {
+  if (!req.session?.isAuthenticated || !req.user) {
     return res.status(401).json({ message: "Not authenticated" });
   }
   next();
@@ -78,201 +90,194 @@ export async function setupAuth(app: Express) {
   // Set up passport
   app.use(passport.initialize());
   app.use(passport.session());
-  
-  passport.serializeUser((user: Express.User, done) => done(null, user));
-  passport.deserializeUser((user: Express.User, done) => done(null, user));
 
-  // Registration endpoint
+  // Passport serialization
+  passport.serializeUser((user, done) => {
+    done(null, user);
+  });
+
+  passport.deserializeUser((user: Express.User, done) => {
+    done(null, user);
+  });
+
+  // Authentication routes
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
-      // Validate registration data
       const data = registerSchema.parse(req.body);
-
-      // Check if email is already registered
+      
+      // Check if user already exists
       const existingUser = await storage.getUserByEmail(data.email);
       if (existingUser) {
-        return res.status(400).json({ message: "Email is already registered" });
+        return res.status(400).json({ message: "User already exists" });
       }
 
-      // Generate username from email
+      // Create username from email if not provided
       let username = data.email.split("@")[0];
-      const existingUsername = await storage.getUserByUsername(username);
-      if (existingUsername) {
-        // If username exists, append random numbers
-        username = `${username}${Math.floor(Math.random() * 1000)}`;
+      let counter = 1;
+      while (await storage.getUserByUsername(username)) {
+        username = `${data.email.split("@")[0]}${counter}`;
+        counter++;
       }
 
-      // Hash the password
+      // Create new user
       const hashedPassword = await bcrypt.hash(data.password, 10);
-
-      // Create the user
       const newUser = await storage.createUser({
-        username,
         email: data.email,
         passwordHash: hashedPassword,
         firstName: data.firstName || "",
         lastName: data.lastName || "",
+        username
       });
 
-      // Create a session user object
-      const sessionUser: Express.User = {
-        claims: {
-          sub: newUser.id,
+      if (newUser) {
+        // Create session user with proper structure
+        const sessionUser: Express.User = {
+          id: newUser.id,
           email: newUser.email || '',
-          name: `${newUser.firstName || ''} ${newUser.lastName || ''}`.trim(),
-          first_name: newUser.firstName || '',
-          last_name: newUser.lastName || ''
-        }
-      };
+          firstName: newUser.firstName || '',
+          lastName: newUser.lastName || '',
+          username: newUser.username || '',
+          claims: {
+            sub: newUser.id,
+            email: newUser.email || '',
+            name: `${newUser.firstName || ''} ${newUser.lastName || ''}`.trim(),
+            first_name: newUser.firstName || '',
+            last_name: newUser.lastName || '',
+          }
+        };
 
-      // Log the user in
-      const authReq = req as AuthenticatedRequest;
-      await new Promise<void>((resolve, reject) => {
-        authReq.logIn(sessionUser, (err) => {
+        // Log the user in
+        req.logIn(sessionUser, (err: any) => {
           if (err) {
-            console.error("Login error after registration:", err);
-            reject(err);
-            return;
+            console.error('Login error:', err);
+            return res.status(500).json({ message: "Login failed" });
           }
-          resolve();
+
+          // Set session flags
+          req.session.isAuthenticated = true;
+          req.session.user = sessionUser;
+
+          // Save session
+          req.session.save((err: any) => {
+            if (err) {
+              console.error('Session save error:', err);
+              return res.status(500).json({ message: "Session save failed" });
+            }
+
+            res.json({
+              id: newUser.id,
+              email: newUser.email,
+              firstName: newUser.firstName,
+              lastName: newUser.lastName,
+              username: newUser.username
+            });
+          });
         });
-      });
-
-      // Set session data
-      authReq.session.isAuthenticated = true;
-      authReq.session.user = sessionUser;
-
-      // Save session
-      authReq.session.save((err) => {
-        if (err) {
-          console.error('Session save error:', err);
-          return res.status(500).json({ message: 'Session save failed' });
-        }
-
-        res.status(201).json({
-          message: "Registration successful",
-          user: {
-            id: newUser.id,
-            email: newUser.email,
-            firstName: newUser.firstName,
-            lastName: newUser.lastName
-          }
-        });
-      });
-    } catch (error) {
-      console.error("Registration error:", error);
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create user" });
       }
-      res.status(500).json({ message: "Failed to register user" });
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      if (error.errors) {
+        res.status(400).json({ message: "Validation failed", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Registration failed" });
+      }
     }
   });
 
-  // Login endpoint
-  app.post("/api/auth/login", async (req: AuthenticatedRequest, res: Response) => {
+  app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
-      console.log('Login attempt:', req.body);
-      
       const { email, password } = req.body;
       
-      // Get user by email
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
+      // Get user from database
       const user = await storage.getUserByEmail(email);
-      if (!user) {
-        return res.status(401).json({ message: "Invalid email or password" });
+      if (!user || !user.passwordHash) {
+        return res.status(401).json({ message: "Invalid credentials" });
       }
 
       // Verify password
-      // Check if user has a password hash
-      if (!user.passwordHash) {
-        return res.status(401).json({ message: "Invalid email or password" });
+      const isValid = await bcrypt.compare(password, user.passwordHash);
+      if (!isValid) {
+        return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      // Verify password
-      const isValidPassword = await bcrypt.compare(password, user.passwordHash);
-      if (!isValidPassword) {
-        return res.status(401).json({ message: "Invalid email or password" });
-      }
-
-      // Create user session object
+      // Create session user with proper structure
       const sessionUser: Express.User = {
+        id: user.id,
+        email: user.email || '',
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        username: user.username || '',
         claims: {
           sub: user.id,
           email: user.email || '',
           name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
           first_name: user.firstName || '',
-          last_name: user.lastName || ''
+          last_name: user.lastName || '',
         }
       };
 
-      await new Promise<void>((resolve, reject) => {
-        req.logIn(sessionUser, (err) => {
-          if (err) {
-            console.error("Login error:", err);
-            reject(err);
-            return;
-          }
-          resolve();
-        });
-      });
-
-      // Set session data after successful login
-      req.session.isAuthenticated = true;
-      req.session.user = sessionUser;
-
-      // Save session explicitly
-      req.session.save((err) => {
+      // Log the user in
+      req.logIn(sessionUser, (err: any) => {
         if (err) {
-          console.error('Session save error:', err);
-          return res.status(500).json({ message: 'Session save failed' });
+          console.error('Login error:', err);
+          return res.status(500).json({ message: "Login failed" });
         }
 
-        console.log('Session after login:', {
-          id: req.sessionID,
-          user: req.user,
-          isAuthenticated: req.session.isAuthenticated,
-          passport: req.session.passport
-        });
+        // Set session flags
+        req.session.isAuthenticated = true;
+        req.session.user = sessionUser;
 
-        res.json({
-          message: "Login successful",
-          user: sessionUser,
-          sessionId: req.sessionID
+        // Save session
+        req.session.save((err: any) => {
+          if (err) {
+            console.error('Session save error:', err);
+            return res.status(500).json({ message: "Session save failed" });
+          }
+
+          res.json({
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            username: user.username
+          });
         });
       });
-    } catch (error) {
-      console.error("Login error:", error);
-      res.status(500).json({ message: "An error occurred during login" });
+    } catch (error: any) {
+      console.error('Login error:', error);
+      res.status(500).json({ message: "Login failed" });
     }
   });
 
-  // Get current user endpoint
-  app.get("/api/auth/user", (req: AuthenticatedRequest, res: Response) => {
-    console.log('User request:', {
-      sessionID: req.sessionID,
-      isAuthenticated: req.session?.isAuthenticated,
-      sessionUser: req.session?.user,
-      passportUser: req.session?.passport?.user,
-      user: req.user
-    });
-
-    // Check both session authentication and passport user
-    if (!req.session?.isAuthenticated && !req.session?.passport?.user) {
-      return res.status(401).json({ message: "Not authenticated" });
+  // Get current user
+  app.get("/api/auth/user", (req: Request, res: Response) => {
+    if (req.user) {
+      res.json({
+        id: req.user.id,
+        email: req.user.email,
+        firstName: req.user.firstName,
+        lastName: req.user.lastName,
+        username: req.user.username
+      });
+    } else {
+      res.status(401).json({ message: "Not authenticated" });
     }
-
-    // In development, use any available user data
-    const userData = req.user || req.session.passport?.user || req.session.user;
-    res.json(userData);
   });
 
-  // Logout endpoint
-  app.post("/api/logout", (req: AuthenticatedRequest, res: Response) => {
-    req.session.destroy((err) => {
+  // Logout
+  app.post("/api/logout", (req: Request, res: Response) => {
+    req.session.destroy((err: any) => {
       if (err) {
-        console.error("Logout error:", err);
+        console.error('Session destroy error:', err);
         return res.status(500).json({ message: "Logout failed" });
       }
-      res.json({ success: true });
+      res.json({ message: "Logged out successfully" });
     });
   });
 }
