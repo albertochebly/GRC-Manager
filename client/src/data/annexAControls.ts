@@ -208,5 +208,5 @@ export const annexAControls = [
     targetComments: ""
   },
   // ...repeat for all remaining unique controls up to Control-8.34...
-  // End of controls
+  // Ensure only unique controls by standardRef, total should be 93.
 ]
