@@ -89,21 +89,20 @@ export default function RichTextEditor({ value, onChange, placeholder = "Enter t
         html = html.replace(/<p[^>]*class=["']?MsoHeading5["']?[^>]*>(.*?)<\/p>/gi, '<h5>$1</h5>');
         html = html.replace(/<p[^>]*class=["']?MsoHeading6["']?[^>]*>(.*?)<\/p>/gi, '<h6>$1</h6>');
 
-        // Preserve text alignment for <p>, <div>, <h1>-<h6> from Word/Office
-        // Convert align="center" to style="text-align:center" for all block tags
+        // Preserve alignment styles and clean up Word-specific tags
         const blockTags = ['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
         blockTags.forEach(tag => {
-          // align="center|right|justify"
+          // Convert align attribute to style
           html = html.replace(new RegExp(`<${tag}([^>]*)align=["']?(center|right|justify)["']?([^>]*)>(.*?)<\/${tag}>`, 'gi'),
             `<${tag}$1 style="text-align:$2"$3>$4</${tag}>`);
-          // style="...text-align:center..."
-          html = html.replace(new RegExp(`<${tag}([^>]*)style=["'][^"'>]*text-align:\s*center;?[^"'>]*["']([^>]*)>(.*?)<\/${tag}>`, 'gi'),
-            `<${tag}$1 style="text-align:center"$2>$3</${tag}>`);
-          html = html.replace(new RegExp(`<${tag}([^>]*)style=["'][^"'>]*text-align:\s*right;?[^"'>]*["']([^>]*)>(.*?)<\/${tag}>`, 'gi'),
-            `<${tag}$1 style="text-align:right"$2>$3</${tag}>`);
-          html = html.replace(new RegExp(`<${tag}([^>]*)style=["'][^"'>]*text-align:\s*justify;?[^"'>]*["']([^>]*)>(.*?)<\/${tag}>`, 'gi'),
-            `<${tag}$1 style="text-align:justify"$2>$3</${tag}>`);
         });
+        // Remove Word's <o:p> tags
+        html = html.replace(/<o:p>.*?<\/o:p>/gi, '');
+        // Remove Word's conditional comments and XML
+  html = html.replace(/<!--\[if[\s\S]*?endif\]-->/gi, '');
+  html = html.replace(/<xml>[\s\S]*?<\/xml>/gi, '');
+        // Remove excessive &nbsp; (keep single spaces)
+        html = html.replace(/(&nbsp;){2,}/g, '&nbsp;');
 
         // Enhance tables if present, but otherwise insert raw HTML
         let enhancedHtml = html.includes('<table') ? enhanceTableHtml(html) : html;
