@@ -88,6 +88,16 @@ export default function RichTextEditor({ value, onChange, placeholder = "Enter t
         html = html.replace(/<p[^>]*class=["']?MsoHeading4["']?[^>]*>(.*?)<\/p>/gi, '<h4>$1</h4>');
         html = html.replace(/<p[^>]*class=["']?MsoHeading5["']?[^>]*>(.*?)<\/p>/gi, '<h5>$1</h5>');
         html = html.replace(/<p[^>]*class=["']?MsoHeading6["']?[^>]*>(.*?)<\/p>/gi, '<h6>$1</h6>');
+
+        // Preserve text alignment from Word/Office (center, right, justify)
+        // Word uses style="text-align:center" or class="MsoNormal" with align info
+        html = html.replace(/<p([^>]*)style=["'][^"'>]*text-align:\s*center;?[^"'>]*["']([^>]*)>(.*?)<\/p>/gi,
+          '<p$1 style="text-align:center"$2>$3</p>');
+        html = html.replace(/<p([^>]*)style=["'][^"'>]*text-align:\s*right;?[^"'>]*["']([^>]*)>(.*?)<\/p>/gi,
+          '<p$1 style="text-align:right"$2>$3</p>');
+        html = html.replace(/<p([^>]*)style=["'][^"'>]*text-align:\s*justify;?[^"'>]*["']([^>]*)>(.*?)<\/p>/gi,
+          '<p$1 style="text-align:justify"$2>$3</p>');
+
         // Enhance tables if present, but otherwise insert raw HTML
         let enhancedHtml = html.includes('<table') ? enhanceTableHtml(html) : html;
         document.execCommand('insertHTML', false, enhancedHtml);
