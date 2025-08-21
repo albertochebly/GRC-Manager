@@ -1,5 +1,21 @@
+// Stable fetch function for frameworks
+async function fetchFrameworks(context: QueryFunctionContext<[string, string?]>) {
+  const [, orgId] = context.queryKey;
+  console.log("Fetching frameworks for org (final):", orgId);
+  const response = await apiRequest("GET", "/api/frameworks");
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error("Unauthorized");
+    }
+    throw new Error("Failed to fetch frameworks");
+  }
+  const data = await response.json();
+  console.log("Fetched frameworks (final):", data);
+  return Array.isArray(data) ? data : [];
+}
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import type { QueryFunctionContext } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import type { Framework, Control } from "@shared/schema";
@@ -27,6 +43,7 @@ export default function Frameworks() {
   const { isAuthenticated, isLoading } = useAuth();
   const { selectedOrganizationId, selectedOrganization } = useOrganizations();
   const [selectedFrameworkId, setSelectedFrameworkId] = useState<string>("");
+  // ...existing code...
   const [selectedFrameworkForTemplates, setSelectedFrameworkForTemplates] = useState<Framework | null>(null);
   const [selectedFrameworkForControls, setSelectedFrameworkForControls] = useState<Framework | null>(null);
   const [isTemplatesDialogOpen, setIsTemplatesDialogOpen] = useState(false);
@@ -47,53 +64,49 @@ export default function Frameworks() {
   }, [selectedOrganizationId]);
 
   // Get all available frameworks
-  const { data: allFrameworks = [], isLoading: isLoadingFrameworks, refetch: refetchFrameworks } = useQuery<Framework[]>({
-    queryKey: ["/api/frameworks", Date.now()], // Add timestamp to force fresh data
+  const { data: allFrameworksRaw, isLoading: isLoadingFrameworks, refetch: refetchFrameworks } = useQuery<Framework[]>({
+    queryKey: ["/api/frameworks", selectedOrganizationId],
     enabled: isAuthenticated && !isLoading && !!selectedOrganizationId,
-    staleTime: 0,
-    queryFn: async () => {
-      try {
-        console.log("Fetching frameworks for org:", selectedOrganizationId);
-        // Add cache-busting timestamp
-        const timestamp = Date.now();
-        const response = await apiRequest("GET", `/api/frameworks?t=${timestamp}`);
-        if (!response.ok) {
-          throw new Error("Failed to fetch frameworks");
-        }
-        const data = await response.json();
-        console.log("Fetched frameworks:", data);
-        return data;
-      } catch (error) {
-        console.error('Failed to fetch frameworks:', error);
-        throw error;
-      }
-    }
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 15 * 60 * 1000, // Keep in cache for 15 minutes
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: false, // Don't retry at all for now
+    queryFn: fetchFrameworks,
   });
+  const allFrameworks: Framework[] = Array.isArray(allFrameworksRaw) ? allFrameworksRaw : [];
 
   // Get organization frameworks
   const { data: orgFrameworks = [] } = useQuery<Framework[]>({
     queryKey: ["/api/organizations", selectedOrganizationId, "frameworks"],
-    enabled: !!selectedOrganizationId,
-    queryFn: async () => {
-      try {
-        const response = await apiRequest("GET", `/api/organizations/${selectedOrganizationId}/frameworks`);
-        if (!response.ok) {
-          throw new Error("Failed to fetch organization frameworks");
-        }
-        const data = await response.json();
-        console.log("Fetched org frameworks:", data);
-        return data;
-      } catch (error) {
-        console.error('Failed to fetch org frameworks:', error);
-        throw error;
+    enabled: isAuthenticated && !!selectedOrganizationId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: (failureCount, error: any) => {
+      // Don't retry on auth errors
+      if (error?.status === 401 || isUnauthorizedError(error)) {
+        return false;
       }
+      return failureCount < 3;
+    },
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/organizations/${selectedOrganizationId}/frameworks`);
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Unauthorized");
+        }
+        throw new Error("Failed to fetch organization frameworks");
+      }
+      const data = await response.json();
+      console.log("Fetched org frameworks:", data);
+      return data;
     }
   });
 
   // Get framework controls
   const { data: controls = [] } = useQuery<Control[]>({
     queryKey: ["/api/frameworks", selectedFrameworkId, "controls"],
-    enabled: !!selectedFrameworkId,
+    enabled: !!selectedFrameworkId && isControlsDialogOpen,
   });
 
   const activateFrameworkMutation = useMutation({
@@ -298,6 +311,16 @@ export default function Frameworks() {
     return orgFrameworks.some((f: any) => f.id === frameworkId);
   };
 
+  useEffect(() => {
+    console.log("Frameworks page rerendered", {
+      isAuthenticated,
+      isLoading,
+      selectedOrganizationId,
+      allFrameworks,
+      isLoadingFrameworks
+    });
+  }, [isAuthenticated, isLoading, selectedOrganizationId, allFrameworks, isLoadingFrameworks]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -309,6 +332,11 @@ export default function Frameworks() {
     );
   }
 
+  if (!isAuthenticated) {
+    return <div>Please log in to view frameworks.</div>;
+  }
+
+  console.log("Render: allFrameworks", allFrameworks);
   return (
     <div className="min-h-screen flex bg-gray-50" data-testid="frameworks-page">
       <Sidebar />
@@ -405,13 +433,19 @@ export default function Frameworks() {
                               <p className="text-sm text-gray-600 mb-4">{framework.description}</p>
                               <div className="space-y-2">
                                 <div className="flex space-x-2">
-                                  <Dialog>
+                                  <Dialog open={isControlsDialogOpen} onOpenChange={(open) => {
+                                    setIsControlsDialogOpen(open);
+                                    if (!open) setSelectedFrameworkId("");
+                                  }}>
                                     <DialogTrigger asChild>
                                       <Button 
                                         size="sm" 
                                         variant="outline" 
                                         className="flex-1"
-                                        onClick={() => setSelectedFrameworkId(framework.id)}
+                                        onClick={() => {
+                                          setSelectedFrameworkId(framework.id);
+                                          setIsControlsDialogOpen(true);
+                                        }}
                                         data-testid={`button-view-controls-${framework.id}`}
                                       >
                                         <Eye className="w-4 h-4 mr-2" />
