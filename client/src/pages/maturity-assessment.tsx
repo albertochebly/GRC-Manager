@@ -17,7 +17,7 @@ import { Progress } from "@/components/ui/progress";
 import { RefreshCw, BarChart3, Target, TrendingUp, Save } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { assessmentQuestions, maturityLevels } from "@/data/maturityAssessmentData";
-import { additionalControls } from "@/data/additionalControls";
+// import { additionalControls } from "@/data/additionalControls";
 
 // Maturity levels configuration - imported from data file
 
@@ -44,7 +44,7 @@ export default function MaturityAssessment() {
   const { isAuthenticated, isLoading } = useAuth();
   const { selectedOrganizationId, selectedOrganization } = useOrganizations();
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const allQuestions = [...assessmentQuestions, ...additionalControls];
+  const allQuestions = [...assessmentQuestions];
   const [assessmentData, setAssessmentData] = useState(allQuestions);
 
   // Permission checks
