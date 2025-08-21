@@ -46,15 +46,43 @@ export default function RichTextEditor({ value, onChange, placeholder = "Enter t
     return () => document.removeEventListener('click', handleClick);
   }, []);
 
-  // Paste handler for images
+  // Table creation
+  const handleInsertTable = () => {
+    const rows = parseInt(window.prompt("Number of rows:", "2") || "2", 10);
+    const cols = parseInt(window.prompt("Number of columns:", "2") || "2", 10);
+    if (rows > 0 && cols > 0 && editorRef.current) {
+      let tableHtml = '<table style="border-collapse:collapse;width:100%">';
+      for (let r = 0; r < rows; r++) {
+        tableHtml += '<tr>';
+        for (let c = 0; c < cols; c++) {
+          tableHtml += '<td style="border:1px solid #ccc;padding:4px">&nbsp;</td>';
+        }
+        tableHtml += '</tr>';
+      }
+      tableHtml += '</table>';
+      document.execCommand('insertHTML', false, tableHtml);
+      onChange(editorRef.current.innerHTML);
+    }
+  };
+
+  // Paste handler for tables and images
   const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
     let foundImage = false;
+    let foundTable = false;
     if (e.clipboardData) {
+      const html = e.clipboardData.getData('text/html');
+      if (html && html.includes('<table')) {
+        foundTable = true;
+        // Insert the HTML table directly
+        document.execCommand('insertHTML', false, html);
+        onChange(editorRef.current?.innerHTML || "");
+        e.preventDefault();
+        setPasteError("");
+        return;
+      }
       const items = e.clipboardData.items;
-      console.log("Paste event items:", items);
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
-        console.log("Item", i, "type:", item.type);
         if (item.type.indexOf('image') !== -1) {
           foundImage = true;
           const file = item.getAsFile();
@@ -73,8 +101,8 @@ export default function RichTextEditor({ value, onChange, placeholder = "Enter t
         }
       }
     }
-    if (!foundImage) {
-      setPasteError("No image found in clipboard. Try copying an image from a browser or screenshot tool.");
+    if (!foundImage && !foundTable) {
+      setPasteError("No image or table found in clipboard. Try copying from a browser or spreadsheet.");
       setTimeout(() => setPasteError(""), 3000);
     }
   };
@@ -162,6 +190,9 @@ export default function RichTextEditor({ value, onChange, placeholder = "Enter t
               </Button>
               <Button type="button" variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} data-testid="button-upload-image">
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/><polyline points="7 9 12 4 17 9"/><line x1="12" y1="4" x2="12" y2="16"/></svg>
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={handleInsertTable} data-testid="button-insert-table">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
               </Button>
               <input type="file" accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileChange} />
             </>
