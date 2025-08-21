@@ -45,42 +45,29 @@ export default function RichTextEditor({ value, onChange, placeholder = "Enter t
     return () => document.removeEventListener('click', handleClick);
   }, []);
 
-  // Handle paste event for images
-  useEffect(() => {
-    const handlePaste = (e: ClipboardEvent) => {
-      if (!editorRef.current) return;
-      if (e.clipboardData) {
-        const items = e.clipboardData.items;
-        for (let i = 0; i < items.length; i++) {
-          const item = items[i];
-          if (item.type.indexOf('image') !== -1) {
-            const file = item.getAsFile();
-            if (file) {
-              const reader = new FileReader();
-              reader.onload = (event) => {
-                const imageUrl = event.target?.result as string;
-                // Insert image at cursor
-                document.execCommand('insertImage', false, imageUrl);
-                onChange(editorRef.current.innerHTML);
-              };
-              reader.readAsDataURL(file);
-              e.preventDefault();
-              break;
-            }
+  // Paste handler for images
+  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    if (e.clipboardData) {
+      const items = e.clipboardData.items;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type.indexOf('image') !== -1) {
+          const file = item.getAsFile();
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              const imageUrl = event.target?.result as string;
+              document.execCommand('insertImage', false, imageUrl);
+              onChange(editorRef.current?.innerHTML || "");
+            };
+            reader.readAsDataURL(file);
+            e.preventDefault();
+            break;
           }
         }
       }
-    };
-    const editor = editorRef.current;
-    if (editor) {
-      editor.addEventListener('paste', handlePaste as any);
     }
-    return () => {
-      if (editor) {
-        editor.removeEventListener('paste', handlePaste as any);
-      }
-    };
-  }, [onChange]);
+  };
 
   const handleCommand = (command: string, value?: string) => {
     if (editorRef.current) {
@@ -179,6 +166,7 @@ export default function RichTextEditor({ value, onChange, placeholder = "Enter t
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           onInput={handleContentChange}
+          onPaste={handlePaste}
           data-placeholder={placeholder}
           data-testid="editor-content"
         />
