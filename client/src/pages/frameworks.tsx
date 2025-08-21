@@ -15,7 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, CheckCircle, Circle, Eye, Settings, X, Plus, Edit3, Trash2 } from "lucide-react";
+import { Shield, CheckCircle, Circle, Eye, Settings, X, Plus, Edit3, Trash2, RefreshCw } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
@@ -47,7 +47,7 @@ export default function Frameworks() {
   }, [selectedOrganizationId]);
 
   // Get all available frameworks
-  const { data: allFrameworks = [], isLoading: isLoadingFrameworks } = useQuery<Framework[]>({
+  const { data: allFrameworks = [], isLoading: isLoadingFrameworks, refetch: refetchFrameworks } = useQuery<Framework[]>({
     queryKey: ["/api/frameworks"],
     enabled: isAuthenticated && !isLoading && !!selectedOrganizationId,
     staleTime: 0,
@@ -339,11 +339,24 @@ export default function Frameworks() {
 
               <TabsContent value="available" className="space-y-6">
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Available Frameworks</CardTitle>
-                    <CardDescription>
-                      Activate frameworks that apply to your organization's compliance requirements
-                    </CardDescription>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>Available Frameworks</CardTitle>
+                      <CardDescription>
+                        Activate frameworks that apply to your organization's compliance requirements
+                      </CardDescription>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        refetchFrameworks();
+                        queryClient.invalidateQueries({ queryKey: ["/api/frameworks"] });
+                      }}
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Refresh
+                    </Button>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
