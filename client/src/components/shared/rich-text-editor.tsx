@@ -78,8 +78,16 @@ export default function RichTextEditor({ value, onChange, placeholder = "Enter t
   // Paste handler for all formatting
   const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
     if (e.clipboardData) {
-      const html = e.clipboardData.getData('text/html');
+      let html = e.clipboardData.getData('text/html');
       if (html) {
+        // Convert Word/Office heading styles to semantic headings
+        html = html.replace(/<p[^>]*class=["']?MsoTitle["']?[^>]*>(.*?)<\/p>/gi, '<h1>$1</h1>');
+        html = html.replace(/<p[^>]*class=["']?MsoHeading1["']?[^>]*>(.*?)<\/p>/gi, '<h1>$1</h1>');
+        html = html.replace(/<p[^>]*class=["']?MsoHeading2["']?[^>]*>(.*?)<\/p>/gi, '<h2>$1</h2>');
+        html = html.replace(/<p[^>]*class=["']?MsoHeading3["']?[^>]*>(.*?)<\/p>/gi, '<h3>$1</h3>');
+        html = html.replace(/<p[^>]*class=["']?MsoHeading4["']?[^>]*>(.*?)<\/p>/gi, '<h4>$1</h4>');
+        html = html.replace(/<p[^>]*class=["']?MsoHeading5["']?[^>]*>(.*?)<\/p>/gi, '<h5>$1</h5>');
+        html = html.replace(/<p[^>]*class=["']?MsoHeading6["']?[^>]*>(.*?)<\/p>/gi, '<h6>$1</h6>');
         // Enhance tables if present, but otherwise insert raw HTML
         let enhancedHtml = html.includes('<table') ? enhanceTableHtml(html) : html;
         document.execCommand('insertHTML', false, enhancedHtml);
@@ -98,8 +106,8 @@ export default function RichTextEditor({ value, onChange, placeholder = "Enter t
         return;
       }
     }
-    setPasteError("No content found in clipboard.");
-    setTimeout(() => setPasteError(""), 3000);
+  setPasteError("No content found in clipboard.");
+  setTimeout(() => setPasteError("") , 3000);
   };
 
   const handleCommand = (command: string, value?: string) => {
