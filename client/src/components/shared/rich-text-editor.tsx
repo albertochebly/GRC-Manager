@@ -75,47 +75,31 @@ export default function RichTextEditor({ value, onChange, placeholder = "Enter t
     }
   };
 
-  // Paste handler for tables and images
+  // Paste handler for all formatting
   const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
-    let foundImage = false;
-    let foundTable = false;
     if (e.clipboardData) {
       const html = e.clipboardData.getData('text/html');
-      if (html && html.includes('<table')) {
-        foundTable = true;
-        // Enhance table HTML before inserting
-        const enhancedHtml = enhanceTableHtml(html);
+      if (html) {
+        // Enhance tables if present, but otherwise insert raw HTML
+        let enhancedHtml = html.includes('<table') ? enhanceTableHtml(html) : html;
         document.execCommand('insertHTML', false, enhancedHtml);
         onChange(editorRef.current?.innerHTML || "");
         e.preventDefault();
         setPasteError("");
         return;
       }
-      const items = e.clipboardData.items;
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        if (item.type.indexOf('image') !== -1) {
-          foundImage = true;
-          const file = item.getAsFile();
-          if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-              const imageUrl = event.target?.result as string;
-              document.execCommand('insertImage', false, imageUrl);
-              onChange(editorRef.current?.innerHTML || "");
-              setPasteError("");
-            };
-            reader.readAsDataURL(file);
-            e.preventDefault();
-            break;
-          }
-        }
+      // Fallback: insert plain text if no HTML
+      const text = e.clipboardData.getData('text/plain');
+      if (text) {
+        document.execCommand('insertText', false, text);
+        onChange(editorRef.current?.innerHTML || "");
+        e.preventDefault();
+        setPasteError("");
+        return;
       }
     }
-    if (!foundImage && !foundTable) {
-      setPasteError("No image or table found in clipboard. Try copying from a browser, spreadsheet, or Word.");
-      setTimeout(() => setPasteError(""), 3000);
-    }
+    setPasteError("No content found in clipboard.");
+    setTimeout(() => setPasteError(""), 3000);
   };
 
   const handleCommand = (command: string, value?: string) => {
