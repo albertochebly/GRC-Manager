@@ -89,14 +89,21 @@ export default function RichTextEditor({ value, onChange, placeholder = "Enter t
         html = html.replace(/<p[^>]*class=["']?MsoHeading5["']?[^>]*>(.*?)<\/p>/gi, '<h5>$1</h5>');
         html = html.replace(/<p[^>]*class=["']?MsoHeading6["']?[^>]*>(.*?)<\/p>/gi, '<h6>$1</h6>');
 
-        // Preserve text alignment from Word/Office (center, right, justify)
-        // Word uses style="text-align:center" or class="MsoNormal" with align info
-        html = html.replace(/<p([^>]*)style=["'][^"'>]*text-align:\s*center;?[^"'>]*["']([^>]*)>(.*?)<\/p>/gi,
-          '<p$1 style="text-align:center"$2>$3</p>');
-        html = html.replace(/<p([^>]*)style=["'][^"'>]*text-align:\s*right;?[^"'>]*["']([^>]*)>(.*?)<\/p>/gi,
-          '<p$1 style="text-align:right"$2>$3</p>');
-        html = html.replace(/<p([^>]*)style=["'][^"'>]*text-align:\s*justify;?[^"'>]*["']([^>]*)>(.*?)<\/p>/gi,
-          '<p$1 style="text-align:justify"$2>$3</p>');
+        // Preserve text alignment for <p>, <div>, <h1>-<h6> from Word/Office
+        // Convert align="center" to style="text-align:center" for all block tags
+        const blockTags = ['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+        blockTags.forEach(tag => {
+          // align="center|right|justify"
+          html = html.replace(new RegExp(`<${tag}([^>]*)align=["']?(center|right|justify)["']?([^>]*)>(.*?)<\/${tag}>`, 'gi'),
+            `<${tag}$1 style="text-align:$2"$3>$4</${tag}>`);
+          // style="...text-align:center..."
+          html = html.replace(new RegExp(`<${tag}([^>]*)style=["'][^"'>]*text-align:\s*center;?[^"'>]*["']([^>]*)>(.*?)<\/${tag}>`, 'gi'),
+            `<${tag}$1 style="text-align:center"$2>$3</${tag}>`);
+          html = html.replace(new RegExp(`<${tag}([^>]*)style=["'][^"'>]*text-align:\s*right;?[^"'>]*["']([^>]*)>(.*?)<\/${tag}>`, 'gi'),
+            `<${tag}$1 style="text-align:right"$2>$3</${tag}>`);
+          html = html.replace(new RegExp(`<${tag}([^>]*)style=["'][^"'>]*text-align:\s*justify;?[^"'>]*["']([^>]*)>(.*?)<\/${tag}>`, 'gi'),
+            `<${tag}$1 style="text-align:justify"$2>$3</${tag}>`);
+        });
 
         // Enhance tables if present, but otherwise insert raw HTML
         let enhancedHtml = html.includes('<table') ? enhanceTableHtml(html) : html;
