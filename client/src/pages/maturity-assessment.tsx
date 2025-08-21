@@ -186,7 +186,7 @@ export default function MaturityAssessment() {
             <div className="mb-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900">ISO27001 Maturity Assessment</h1>
+                  <h1 className="text-3xl font-bold text-gray-900">ISO27001 GAP Assessment</h1>
                   <p className="text-gray-600 mt-2">ISO 27001 Information Security Management System Maturity Assessment</p>
                 </div>
                 <div className="flex space-x-2">
