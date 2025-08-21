@@ -24,6 +24,7 @@ export default function RichTextEditor({ value, onChange, placeholder = "Enter t
   const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pasteError, setPasteError] = useState<string>("");
 
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== value) {
@@ -47,11 +48,15 @@ export default function RichTextEditor({ value, onChange, placeholder = "Enter t
 
   // Paste handler for images
   const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    let foundImage = false;
     if (e.clipboardData) {
       const items = e.clipboardData.items;
+      console.log("Paste event items:", items);
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
+        console.log("Item", i, "type:", item.type);
         if (item.type.indexOf('image') !== -1) {
+          foundImage = true;
           const file = item.getAsFile();
           if (file) {
             const reader = new FileReader();
@@ -59,6 +64,7 @@ export default function RichTextEditor({ value, onChange, placeholder = "Enter t
               const imageUrl = event.target?.result as string;
               document.execCommand('insertImage', false, imageUrl);
               onChange(editorRef.current?.innerHTML || "");
+              setPasteError("");
             };
             reader.readAsDataURL(file);
             e.preventDefault();
@@ -66,6 +72,10 @@ export default function RichTextEditor({ value, onChange, placeholder = "Enter t
           }
         }
       }
+    }
+    if (!foundImage) {
+      setPasteError("No image found in clipboard. Try copying an image from a browser or screenshot tool.");
+      setTimeout(() => setPasteError(""), 3000);
     }
   };
 
@@ -159,6 +169,9 @@ export default function RichTextEditor({ value, onChange, placeholder = "Enter t
         </div>
       </div>
       <CardContent className="p-4">
+        {pasteError && (
+          <div className="text-red-600 text-sm mb-2">{pasteError}</div>
+        )}
         <div
           ref={editorRef}
           contentEditable
