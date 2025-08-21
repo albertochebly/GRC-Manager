@@ -26,6 +26,16 @@ export default function RichTextEditor({ value, onChange, placeholder = "Enter t
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pasteError, setPasteError] = useState<string>("");
 
+  // Utility to enhance table HTML with borders and padding
+  function enhanceTableHtml(html: string) {
+    // Add border-collapse and width to <table>
+    html = html.replace(/<table(.*?)>/gi, '<table$1 style="border-collapse:collapse;width:100%">');
+    // Add border and padding to <td> and <th>
+    html = html.replace(/<td(.*?)>/gi, '<td$1 style="border:1px solid #ccc;padding:4px">');
+    html = html.replace(/<th(.*?)>/gi, '<th$1 style="border:1px solid #ccc;padding:4px">');
+    return html;
+  }
+
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== value) {
       editorRef.current.innerHTML = value;
@@ -73,8 +83,9 @@ export default function RichTextEditor({ value, onChange, placeholder = "Enter t
       const html = e.clipboardData.getData('text/html');
       if (html && html.includes('<table')) {
         foundTable = true;
-        // Insert the HTML table directly
-        document.execCommand('insertHTML', false, html);
+        // Enhance table HTML before inserting
+        const enhancedHtml = enhanceTableHtml(html);
+        document.execCommand('insertHTML', false, enhancedHtml);
         onChange(editorRef.current?.innerHTML || "");
         e.preventDefault();
         setPasteError("");
@@ -102,7 +113,7 @@ export default function RichTextEditor({ value, onChange, placeholder = "Enter t
       }
     }
     if (!foundImage && !foundTable) {
-      setPasteError("No image or table found in clipboard. Try copying from a browser or spreadsheet.");
+      setPasteError("No image or table found in clipboard. Try copying from a browser, spreadsheet, or Word.");
       setTimeout(() => setPasteError(""), 3000);
     }
   };
