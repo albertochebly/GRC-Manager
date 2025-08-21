@@ -17,6 +17,7 @@ import { Progress } from "@/components/ui/progress";
 import { RefreshCw, BarChart3, Target, TrendingUp, Save } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { assessmentQuestions, maturityLevels } from "@/data/maturityAssessmentData";
+import { additionalControls } from "@/data/additionalControls";
 
 // Maturity levels configuration - imported from data file
 
@@ -43,7 +44,8 @@ export default function MaturityAssessment() {
   const { isAuthenticated, isLoading } = useAuth();
   const { selectedOrganizationId, selectedOrganization } = useOrganizations();
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [assessmentData, setAssessmentData] = useState(assessmentQuestions);
+  const allQuestions = [...assessmentQuestions, ...additionalControls];
+  const [assessmentData, setAssessmentData] = useState(allQuestions);
 
   // Permission checks
   const userRole = selectedOrganization?.role;
@@ -65,10 +67,11 @@ export default function MaturityAssessment() {
 
   // Use API data if available, otherwise use default data
   useEffect(() => {
-    if (apiAssessments && apiAssessments.length > 0) {
+    // If API returns a complete set, use it. Otherwise, fallback to allQuestions
+    if (apiAssessments && Array.isArray(apiAssessments) && apiAssessments.length >= allQuestions.length) {
       setAssessmentData(apiAssessments);
     } else {
-      setAssessmentData(assessmentQuestions);
+      setAssessmentData(allQuestions);
     }
   }, [apiAssessments, selectedOrganizationId]);
 
