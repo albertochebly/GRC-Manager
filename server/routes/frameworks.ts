@@ -361,6 +361,44 @@ router.delete("/:frameworkId/controls/:controlId/templates/:templateId", isAuthe
   }
 });
 
+// PUT /api/frameworks/:frameworkId/controls/:controlId/templates/:templateId - Update a template for a control
+router.put("/:frameworkId/controls/:controlId/templates/:templateId", isAuthenticated, async (req, res) => {
+  try {
+    const { templateId } = req.params;
+    const userId = req.user?.id;
+    const { documentTitle, documentType, documentDescription, contentTemplate } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    if (!documentTitle || !documentType) {
+      return res.status(400).json({ error: "Document title and type are required" });
+    }
+
+    // Update the template
+    const [updatedTemplate] = await db
+      .update(controlTemplates)
+      .set({
+        documentTitle,
+        documentType,
+        documentDescription: documentDescription || null,
+        contentTemplate: contentTemplate || null,
+      })
+      .where(eq(controlTemplates.id, templateId))
+      .returning();
+
+    if (!updatedTemplate) {
+      return res.status(404).json({ error: "Template not found" });
+    }
+
+    res.json(updatedTemplate);
+  } catch (error) {
+    console.error("Error updating control template:", error);
+    res.status(500).json({ error: "Failed to update control template" });
+  }
+});
+
 // POST /api/frameworks/:frameworkId/controls - Add a new control to a framework
 router.post("/:frameworkId/controls", isAuthenticated, async (req, res) => {
   try {

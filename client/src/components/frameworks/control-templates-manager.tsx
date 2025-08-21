@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, FileText } from "lucide-react";
+import { Plus, Trash2, FileText, Edit3 } from "lucide-react";
 import RichTextEditor from "@/components/shared/rich-text-editor";
 
 interface ControlTemplate {
@@ -42,6 +42,8 @@ export default function ControlTemplatesManager({ frameworkId, frameworkName }: 
   const { isAuthenticated } = useAuth();
   const [selectedControl, setSelectedControl] = useState<Control | null>(null);
   const [isAddTemplateDialogOpen, setIsAddTemplateDialogOpen] = useState(false);
+  const [isEditTemplateDialogOpen, setIsEditTemplateDialogOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<ControlTemplate | null>(null);
   const [newTemplate, setNewTemplate] = useState({
     documentTitle: "",
     documentType: "",
@@ -126,6 +128,46 @@ export default function ControlTemplatesManager({ frameworkId, frameworkName }: 
     }
   });
 
+  // Update template mutation
+  const updateTemplateMutation = useMutation({
+    mutationFn: async ({ controlId, templateId, templateData }: { 
+      controlId: string; 
+      templateId: string; 
+      templateData: {
+        documentTitle: string;
+        documentType: string;
+        documentDescription: string;
+        contentTemplate: string;
+      } 
+    }) => {
+      const response = await apiRequest(
+        "PUT",
+        `/api/frameworks/${frameworkId}/controls/${controlId}/templates/${templateId}`,
+        templateData
+      );
+      if (!response.ok) {
+        throw new Error("Failed to update template");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/frameworks", frameworkId, "controls"] });
+      setIsEditTemplateDialogOpen(false);
+      setEditingTemplate(null);
+      toast({
+        title: "Success",
+        description: "Template updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update template",
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleAddTemplate = () => {
     if (!selectedControl) return;
     addTemplateMutation.mutate({
@@ -136,6 +178,25 @@ export default function ControlTemplatesManager({ frameworkId, frameworkName }: 
 
   const handleDeleteTemplate = (controlId: string, templateId: string) => {
     deleteTemplateMutation.mutate({ controlId, templateId });
+  };
+
+  const handleEditTemplate = (template: ControlTemplate) => {
+    setEditingTemplate(template);
+    setIsEditTemplateDialogOpen(true);
+  };
+
+  const handleUpdateTemplate = () => {
+    if (!selectedControl || !editingTemplate) return;
+    updateTemplateMutation.mutate({
+      controlId: selectedControl.id,
+      templateId: editingTemplate.id,
+      templateData: {
+        documentTitle: editingTemplate.documentTitle,
+        documentType: editingTemplate.documentType,
+        documentDescription: editingTemplate.documentDescription || "",
+        contentTemplate: editingTemplate.contentTemplate || "",
+      }
+    });
   };
 
   if (isLoading) {
@@ -296,7 +357,7 @@ export default function ControlTemplatesManager({ frameworkId, frameworkName }: 
                         <TableHead>Document Title</TableHead>
                         <TableHead>Type</TableHead>
                         <TableHead>Description</TableHead>
-                        <TableHead className="w-16">Actions</TableHead>
+                        <TableHead className="w-24">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -310,14 +371,27 @@ export default function ControlTemplatesManager({ frameworkId, frameworkName }: 
                             {template.documentDescription || "No description"}
                           </TableCell>
                           <TableCell>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleDeleteTemplate(control.id, template.id)}
-                              disabled={deleteTemplateMutation.isPending}
-                            >
-                              <Trash2 className="w-4 h-4 text-red-500" />
-                            </Button>
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  setSelectedControl(control);
+                                  handleEditTemplate(template);
+                                }}
+                                disabled={updateTemplateMutation.isPending}
+                              >
+                                <Edit3 className="w-4 h-4 text-blue-500" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDeleteTemplate(control.id, template.id)}
+                                disabled={deleteTemplateMutation.isPending}
+                              >
+                                <Trash2 className="w-4 h-4 text-red-500" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -329,6 +403,98 @@ export default function ControlTemplatesManager({ frameworkId, frameworkName }: 
           ))
         )}
       </div>
+
+      {/* Edit Template Dialog */}
+      <Dialog open={isEditTemplateDialogOpen} onOpenChange={setIsEditTemplateDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Document Template</DialogTitle>
+            <DialogDescription>
+              Update the template for documents that will be automatically generated for this control.
+            </DialogDescription>
+          </DialogHeader>
+          {editingTemplate && (
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="editDocumentTitle">Document Title</Label>
+                <Input
+                  id="editDocumentTitle"
+                  value={editingTemplate.documentTitle}
+                  onChange={(e) => setEditingTemplate(prev => prev ? { ...prev, documentTitle: e.target.value } : null)}
+                  placeholder="e.g., Password Policy"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="editDocumentType">Document Type</Label>
+                <Select
+                  value={editingTemplate.documentType}
+                  onValueChange={(value) => setEditingTemplate(prev => prev ? { ...prev, documentType: value } : null)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select document type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Policy">Policy</SelectItem>
+                    <SelectItem value="Standard">Standard</SelectItem>
+                    <SelectItem value="Procedure">Procedure</SelectItem>
+                    <SelectItem value="Guidelines">Guidelines</SelectItem>
+                    <SelectItem value="Plan">Plan</SelectItem>
+                    <SelectItem value="Program">Program</SelectItem>
+                    <SelectItem value="Methodology">Methodology</SelectItem>
+                    <SelectItem value="Framework">Framework</SelectItem>
+                    <SelectItem value="Register">Register</SelectItem>
+                    <SelectItem value="Checklist">Checklist</SelectItem>
+                    <SelectItem value="Playbook">Playbook</SelectItem>
+                    <SelectItem value="Template">Template</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="editDocumentDescription">Description (Optional)</Label>
+                <Textarea
+                  id="editDocumentDescription"
+                  value={editingTemplate.documentDescription || ""}
+                  onChange={(e) => setEditingTemplate(prev => prev ? { ...prev, documentDescription: e.target.value } : null)}
+                  placeholder="Brief description of what this document should contain"
+                  rows={2}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="editContentTemplate">Content Template (Optional)</Label>
+                <div className="mt-2">
+                  <RichTextEditor
+                    value={editingTemplate.contentTemplate || ""}
+                    onChange={(value) => setEditingTemplate(prev => prev ? { ...prev, contentTemplate: value } : null)}
+                    placeholder="Template content that will be used as the initial content for the document. You can include formatting, images, tables, etc."
+                    className="min-h-[300px]"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsEditTemplateDialogOpen(false);
+                    setEditingTemplate(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleUpdateTemplate}
+                  disabled={!editingTemplate.documentTitle || !editingTemplate.documentType || updateTemplateMutation.isPending}
+                >
+                  {updateTemplateMutation.isPending ? "Updating..." : "Update Template"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

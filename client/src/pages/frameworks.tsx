@@ -48,13 +48,15 @@ export default function Frameworks() {
 
   // Get all available frameworks
   const { data: allFrameworks = [], isLoading: isLoadingFrameworks, refetch: refetchFrameworks } = useQuery<Framework[]>({
-    queryKey: ["/api/frameworks"],
+    queryKey: ["/api/frameworks", Date.now()], // Add timestamp to force fresh data
     enabled: isAuthenticated && !isLoading && !!selectedOrganizationId,
     staleTime: 0,
     queryFn: async () => {
       try {
         console.log("Fetching frameworks for org:", selectedOrganizationId);
-        const response = await apiRequest("GET", "/api/frameworks");
+        // Add cache-busting timestamp
+        const timestamp = Date.now();
+        const response = await apiRequest("GET", `/api/frameworks?t=${timestamp}`);
         if (!response.ok) {
           throw new Error("Failed to fetch frameworks");
         }
@@ -350,12 +352,13 @@ export default function Frameworks() {
                       variant="outline" 
                       size="sm" 
                       onClick={() => {
+                        queryClient.clear(); // Clear all cache
                         refetchFrameworks();
-                        queryClient.invalidateQueries({ queryKey: ["/api/frameworks"] });
+                        window.location.reload(); // Force page reload
                       }}
                     >
                       <RefreshCw className="w-4 h-4 mr-2" />
-                      Refresh
+                      Hard Refresh
                     </Button>
                   </CardHeader>
                   <CardContent>
