@@ -555,7 +555,14 @@ export default function RiskRegister() {
                       impact: selectedRisk.impact,
                       likelihood: selectedRisk.likelihood,
                       mitigationPlan: selectedRisk.mitigationPlan || '',
-                      status: selectedRisk.status || 'identified',
+                      status: (selectedRisk.status as
+                        | "identified"
+                        | "in_assessment"
+                        | "pending_treatment"
+                        | "in_progress"
+                        | "remediated"
+                        | "monitoring"
+                        | "closed") || "identified",
                     }}
                     onSubmit={(data) => updateRiskMutation.mutate(data)}
                     isLoading={updateRiskMutation.isPending}
