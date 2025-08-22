@@ -207,6 +207,6 @@ export const annexAControls = [
     targetMaturityScore: 0,
     targetComments: ""
   },
-  // ...repeat for all remaining unique controls up to Control-8.34...
-  // Ensure only unique controls by standardRef, total should be 93.
+  // ...existing code...
+  // Only 93 unique controls should be present, one per standardRef.
 ]

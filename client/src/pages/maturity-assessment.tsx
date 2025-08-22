@@ -67,12 +67,17 @@ export default function MaturityAssessment() {
 
   // Use API data if available, otherwise use default data
   useEffect(() => {
-    // If API returns a complete set, use it. Otherwise, fallback to allQuestions
-    if (apiAssessments && Array.isArray(apiAssessments) && apiAssessments.length >= allQuestions.length) {
-      setAssessmentData(apiAssessments);
+    // Always use local data for Mandatory Clauses to guarantee all 29 are shown
+    const mandatoryLocal = allQuestions.filter(item => item.category === "Mandatory Clauses");
+    let annexA = [];
+    if (apiAssessments && Array.isArray(apiAssessments)) {
+      const annexAApi = apiAssessments.filter(item => item.category === "Annex A Controls");
+      const annexALocal = allQuestions.filter(item => item.category === "Annex A Controls");
+      annexA = annexAApi.length > 0 ? annexAApi : annexALocal;
     } else {
-      setAssessmentData(allQuestions);
+      annexA = allQuestions.filter(item => item.category === "Annex A Controls");
     }
+    setAssessmentData([...mandatoryLocal, ...annexA]);
   }, [apiAssessments, selectedOrganizationId]);
 
   // Calculate overall maturity score
