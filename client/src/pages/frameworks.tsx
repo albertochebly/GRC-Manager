@@ -48,6 +48,8 @@ export default function Frameworks() {
   const [selectedFrameworkForControls, setSelectedFrameworkForControls] = useState<Framework | null>(null);
   const [isTemplatesDialogOpen, setIsTemplatesDialogOpen] = useState(false);
   const [isControlsDialogOpen, setIsControlsDialogOpen] = useState(false);
+  const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
+  const [frameworkToDeactivate, setFrameworkToDeactivate] = useState<Framework | null>(null);
   
   // Framework Management states
   const [isCreateFrameworkDialogOpen, setIsCreateFrameworkDialogOpen] = useState(false);
@@ -575,21 +577,33 @@ export default function Frameworks() {
                                   Manage Templates
                                 </Button>
                                 
-                                <Button 
-                                  variant="destructive" 
-                                  className="w-full" 
-                                  size="sm"
-                                  onClick={() => {
-                                    if (confirm(`Are you sure you want to deactivate "${framework.name}"? This will remove the framework from your active compliance programs, but all documents created from this framework will remain available.`)) {
-                                      deactivateFrameworkMutation.mutate(framework.id);
-                                    }
-                                  }}
-                                  disabled={deactivateFrameworkMutation.isPending}
-                                  data-testid={`button-deactivate-${framework.id}`}
-                                >
-                                  <X className="w-4 h-4 mr-2" />
-                                  {deactivateFrameworkMutation.isPending ? "Deactivating..." : "Deactivate Framework"}
-                                </Button>
+                                <AlertDialog open={isDeactivateDialogOpen && frameworkToDeactivate?.id === framework.id} onOpenChange={open => { setIsDeactivateDialogOpen(open); if (!open) setFrameworkToDeactivate(null); }}>
+                                  <AlertDialogTrigger asChild>
+                                    <Button 
+                                      variant="destructive" 
+                                      className="w-full" 
+                                      size="sm"
+                                      onClick={() => { setIsDeactivateDialogOpen(true); setFrameworkToDeactivate(framework); }}
+                                      disabled={deactivateFrameworkMutation.isPending}
+                                      data-testid={`button-deactivate-${framework.id}`}
+                                    >
+                                      <X className="w-4 h-4 mr-2" />
+                                      {deactivateFrameworkMutation.isPending ? "Deactivating..." : "Deactivate Framework"}
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Deactivate Framework</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to deactivate "{framework.name}"? This will remove the framework from your active compliance programs, but all documents created from this framework will remain available.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => { deactivateFrameworkMutation.mutate(framework.id); setIsDeactivateDialogOpen(false); setFrameworkToDeactivate(null); }}>OK</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               </div>
                             </CardContent>
                           </Card>

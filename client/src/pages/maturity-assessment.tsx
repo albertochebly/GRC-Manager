@@ -115,7 +115,7 @@ export default function MaturityAssessment() {
         5: { cellWidth: 70 },
         6: { cellWidth: 70 }
       },
-      headStyles: { fillColor: [230, 230, 230] },
+  headStyles: { fillColor: [230, 230, 230], textColor: 20, fontStyle: 'bold' },
       didParseCell: function (data) {
         // Color current maturity level cell
         if (data.section === 'body' && data.column.index === 4) {
@@ -386,15 +386,15 @@ export default function MaturityAssessment() {
                 <div className="overflow-x-auto">
                   <Table className="min-w-full">
                     <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-32">Category</TableHead>
-                        <TableHead className="w-40">Section</TableHead>
-                        <TableHead className="w-24">Standard Ref</TableHead>
-                        <TableHead className="w-80">Assessment Question</TableHead>
-                        <TableHead className="w-48">Current Maturity Level</TableHead>
-                        <TableHead className="w-60">Current Comments</TableHead>
-                        <TableHead className="w-48">Target Maturity Level</TableHead>
-                        <TableHead className="w-60">Target Comments</TableHead>
+                      <TableRow className="bg-gray-200">
+                        <TableHead className="w-32 text-gray-800 font-bold">Category</TableHead>
+                        <TableHead className="w-40 text-gray-800 font-bold">Section</TableHead>
+                        <TableHead className="w-24 text-gray-800 font-bold">Standard Ref</TableHead>
+                        <TableHead className="w-80 text-gray-800 font-bold">Assessment Question</TableHead>
+                        <TableHead className="w-48 text-gray-800 font-bold">Current Maturity Level</TableHead>
+                        <TableHead className="w-60 text-gray-800 font-bold">Current Comments</TableHead>
+                        <TableHead className="w-48 text-gray-800 font-bold">Target Maturity Level</TableHead>
+                        <TableHead className="w-60 text-gray-800 font-bold">Target Comments</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
