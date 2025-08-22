@@ -20,13 +20,12 @@ export default function Sidebar() {
   const { organizations, selectedOrganization, selectedOrganizationId, setSelectedOrganizationId } = useOrganizations();
 
   const navigation = [
-    { name: "Dashboard", href: "/dashboard", icon: Home },
-    { name: "Documents", href: "/documents", icon: FileText },
-    { name: "Risk Register", href: "/risk-register", icon: AlertTriangle },
+  { name: "Dashboard", href: "/dashboard", icon: Home },
+  { name: "Documents", href: "/documents", icon: FileText },
+  { name: "Risk Register", href: "/risk-register", icon: AlertTriangle },
   { name: "ISO27001 GAP Assessment", href: "/maturity-assessment", icon: BarChart3 },
-    { name: "Frameworks", href: "/frameworks", icon: Clipboard },
-    { name: "Import/Export", href: "/import-export", icon: Upload },
-    { name: "Users & Roles", href: "/users", icon: Users },
+  { name: "Frameworks", href: "/frameworks", icon: Clipboard },
+  { name: "Users & Roles", href: "/users", icon: Users },
   ];
 
   // Filter navigation items based on user role

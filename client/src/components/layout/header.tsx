@@ -43,11 +43,6 @@ export default function Header() {
           title: 'User Management',
           description: 'Manage user accounts and permissions'
         };
-      case '/import-export':
-        return {
-          title: 'Import & Export',
-          description: 'Import and export compliance data'
-        };
       default:
         return {
           title: 'AuditAlign',

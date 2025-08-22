@@ -32,7 +32,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Plus, FileText, Edit, Eye, Filter, Trash2, MoreHorizontal, CheckCircle, Clock, Archive } from "lucide-react";
 import { format } from "date-fns";
-import CSVImport from "@/components/shared/csv-import";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,7 +52,6 @@ export default function Documents() {
   const navigate = useNavigate();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [documentTypeFilter, setDocumentTypeFilter] = useState<string>("all");
-  const [showCsvImport, setShowCsvImport] = useState(false);
 
   // Get user role in selected organization
   const userRole = selectedOrganization?.role || "read-only";
@@ -401,30 +399,6 @@ export default function Documents() {
   }, [documents, documentTypeFilter]);
 
   // CSV import handler
-  const handleCsvImport = async (data: any[]) => {
-    try {
-      const response = await apiRequest(
-        "POST", 
-        `/api/organizations/${selectedOrganizationId}/documents/import-csv`,
-        { documents: data }
-      );
-      
-      if (response.ok) {
-        queryClient.invalidateQueries({ queryKey: ["/api/organizations", selectedOrganizationId, "documents"] });
-        toast({
-          title: "Success",
-          description: `Imported ${data.length} documents successfully`,
-        });
-        setShowCsvImport(false);
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to import documents from CSV",
-        variant: "destructive",
-      });
-    }
-  };
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive"> = {
@@ -492,15 +466,6 @@ export default function Documents() {
                   </SelectContent>
                 </Select>
               </div>
-
-              <Button 
-                onClick={() => setShowCsvImport(true)} 
-                variant="outline"
-                data-testid="button-import-csv"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Import CSV
-              </Button>
             </div>
             
             {selectedOrganizationId && canCreateDocuments && (
@@ -746,22 +711,6 @@ export default function Documents() {
           )}
 
           {/* CSV Import Dialog */}
-          <Dialog open={showCsvImport} onOpenChange={setShowCsvImport}>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Import Documents from CSV</DialogTitle>
-                <DialogDescription>
-                  Upload a CSV file containing documents to import. Required columns: Title, Document Type, Content, Framework (optional)
-                </DialogDescription>
-              </DialogHeader>
-              <CSVImport
-                onImport={handleCsvImport}
-                title="Import Documents"
-                description="Upload a CSV file containing documents to import. Required columns: Title, Document Type, Content, Framework (optional)"
-                data-testid="csv-import-documents"
-              />
-            </DialogContent>
-          </Dialog>
         </main>
       </div>
     </div>
