@@ -65,7 +65,7 @@ router.post("/:organizationId/maturity-assessments", isAuthenticated, async (req
   } catch (error) {
     console.error("Error saving maturity assessments:", error);
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: "Invalid assessment data", errors: error.errors });
+  return res.status(400).json({ message: "Invalid assessment data", errors: error.issues });
     }
     res.status(500).json({ message: "Failed to save maturity assessments" });
   }

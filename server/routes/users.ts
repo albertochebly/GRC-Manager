@@ -122,7 +122,7 @@ userRouter.post("/:orgId/users", isAuthenticated, async (req: Request, res: Resp
     if (!validation.success) {
       return res.status(400).json({ 
         message: "Invalid input data",
-        errors: validation.error.errors 
+  errors: validation.error.issues
       });
     }
 
@@ -235,7 +235,7 @@ userRouter.put("/:orgId/users/:userId", isAuthenticated, async (req: Request, re
     if (!validationResult.success) {
       return res.status(400).json({ 
         message: "Invalid input data",
-        errors: validationResult.error.errors 
+  errors: validationResult.error.issues
       });
     }
 
@@ -391,7 +391,7 @@ userRouter.post("/:orgId/users/invite", isAuthenticated, async (req: Request, re
     if (!validation.success) {
       return res.status(400).json({ 
         message: "Invalid input data",
-        errors: validation.error.errors 
+  errors: validation.error.issues
       });
     }
 
