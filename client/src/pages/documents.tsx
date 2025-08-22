@@ -32,6 +32,44 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Plus, FileText, Edit, Eye, Filter, Trash2, MoreHorizontal, CheckCircle, Clock, Archive } from "lucide-react";
 import { format } from "date-fns";
+import jsPDF from "jspdf";
+import html2pdf from "html2pdf.js";
+  // Print document content to PDF (preserve HTML formatting)
+  const handlePrintPdf = (doc: any) => {
+    // Create a temporary div to render HTML content with scaled styles
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = doc.content || "";
+    tempDiv.style.fontSize = "12px";
+    tempDiv.style.maxWidth = "700px";
+    tempDiv.style.lineHeight = "1.5";
+    tempDiv.style.padding = "16px";
+    tempDiv.style.background = "#fff";
+    tempDiv.style.color = "#222";
+    // Add CSS to avoid page breaks inside important elements
+    const style = document.createElement("style");
+    style.innerHTML = `
+      li, p, h1, h2, h3, h4, h5, h6 {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+    `;
+    tempDiv.appendChild(style);
+    document.body.appendChild(tempDiv);
+    document.body.appendChild(tempDiv);
+    html2pdf()
+      .set({
+        margin: 0.5,
+        filename: `${doc.title || "document"}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+      })
+      .from(tempDiv)
+      .save()
+      .then(() => {
+        document.body.removeChild(tempDiv);
+      });
+  };
 import {
   AlertDialog,
   AlertDialogAction,
@@ -547,6 +585,16 @@ export default function Documents() {
                         <TableCell>{format(new Date(doc.updatedAt), 'MMM dd, yyyy')}</TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
+                            {/* Print to PDF Button - Available for all users */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="bg-blue-50 hover:bg-blue-100 text-blue-600"
+                              onClick={() => handlePrintPdf(doc)}
+                              data-testid={`button-print-pdf-${doc.id}`}
+                            >
+                              Print PDF
+                            </Button>
                             {/* Delete Button - Admins and Approvers only */}
                             {(userRole === "admin" || userRole === "approver") && (
                               <AlertDialog>
