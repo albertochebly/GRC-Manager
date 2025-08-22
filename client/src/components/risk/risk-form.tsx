@@ -14,6 +14,15 @@ const riskSchema = z.object({
   title: z.string().min(1, "Risk title is required"),
   description: z.string().min(1, "Risk description is required"),
   riskType: z.enum(["asset", "scenario"]),
+  status: z.enum([
+    "identified",
+    "in_assessment",
+    "pending_treatment",
+    "in_progress",
+    "remediated",
+    "monitoring",
+    "closed"
+  ]).default("identified"),
   assetCategory: z.string().optional(),
   assetDescription: z.string().optional(),
   confidentialityImpact: z.number().min(1).max(5),
@@ -45,7 +54,8 @@ export default function RiskForm({ onSubmit, isLoading, initialData }: RiskFormP
       riskId: initialData?.riskId || "",
       title: initialData?.title || "",
       description: initialData?.description || "",
-      riskType: (initialData as any)?.riskType || "asset",
+  riskType: (initialData as any)?.riskType || "asset",
+  status: (initialData as any)?.status || "identified",
       assetCategory: (initialData as any)?.assetCategory || "",
       assetDescription: (initialData as any)?.assetDescription || "",
       confidentialityImpact: (initialData as any)?.confidentialityImpact || 1,
@@ -199,6 +209,30 @@ export default function RiskForm({ onSubmit, isLoading, initialData }: RiskFormP
           </div>
         </>
       )}
+
+      <div>
+        <Label htmlFor="status">Status</Label>
+        <Select
+          onValueChange={(value) => setValue("status", value as any)}
+          defaultValue={(initialData as any)?.status || "identified"}
+        >
+          <SelectTrigger data-testid="select-risk-status">
+            <SelectValue placeholder="Select status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="identified">Identified</SelectItem>
+            <SelectItem value="in_assessment">In Assessment</SelectItem>
+            <SelectItem value="pending_treatment">Pending Treatment</SelectItem>
+            <SelectItem value="in_progress">In Progress</SelectItem>
+            <SelectItem value="remediated">Remediated</SelectItem>
+            <SelectItem value="monitoring">Monitoring</SelectItem>
+            <SelectItem value="closed">Closed</SelectItem>
+          </SelectContent>
+        </Select>
+        {errors.status && (
+          <p className="text-sm text-red-600 mt-1">{errors.status.message}</p>
+        )}
+      </div>
 
       {/* CIA Impact Breakdown */}
       <div className="space-y-4">

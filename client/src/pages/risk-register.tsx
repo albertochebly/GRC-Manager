@@ -28,8 +28,97 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
+import html2pdf from "html2pdf.js";
 
 export default function RiskRegister() {
+  // Print all risks as a table to PDF
+  const handlePrintRiskList = () => {
+    const orgName = selectedOrganization?.name || "";
+    const today = format(new Date(), 'MMM dd, yyyy');
+    const safeOrgName = orgName.replace(/[^a-zA-Z0-9-_]/g, "_");
+    const filename = `${safeOrgName}_${today}_risk-register-list.pdf`;
+    const tempDiv = document.createElement("div");
+    tempDiv.style.fontSize = "12px";
+    tempDiv.style.maxWidth = "900px";
+    tempDiv.style.lineHeight = "1.5";
+    tempDiv.style.padding = "16px";
+    tempDiv.style.background = "#fff";
+    tempDiv.style.color = "#222";
+    let html = `<div style='margin-bottom:16px;'>`;
+    html += `<div style='font-size:18px; font-weight:bold;'>${orgName}</div>`;
+    html += `<div style='font-size:14px; color:#555;'>${today}</div>`;
+    html += `</div>`;
+    html += `<h2 style='margin-bottom:16px;'>Risk Register List</h2>`;
+    html += `<table style='width:100%; border-collapse:collapse;'>`;
+    html += `<thead><tr style='background:#f5f5f5;'>`;
+    html += `<th style='border:1px solid #ccc; padding:8px;'>Title</th>`;
+    html += `<th style='border:1px solid #ccc; padding:8px;'>Asset Category</th>`;
+    html += `<th style='border:1px solid #ccc; padding:8px;'>CIA Impact</th>`;
+    html += `<th style='border:1px solid #ccc; padding:8px;'>Likelihood</th>`;
+    html += `<th style='border:1px solid #ccc; padding:8px;'>Risk Score</th>`;
+    html += `<th style='border:1px solid #ccc; padding:8px;'>Risk Level</th>`;
+    html += `<th style='border:1px solid #ccc; padding:8px;'>Status</th>`;
+    html += `<th style='border:1px solid #ccc; padding:8px;'>Last Updated</th>`;
+    html += `</tr></thead><tbody>`;
+    risks.forEach((risk: any) => {
+      // Format CIA Impact to match webapp: C{confidentialityImpact} I{integrityImpact} A{availabilityImpact} ({impact})
+      let ciaImpact = "";
+      if (
+        risk.confidentialityImpact != null &&
+        risk.integrityImpact != null &&
+        risk.availabilityImpact != null &&
+        risk.impact != null
+      ) {
+        ciaImpact = `C${risk.confidentialityImpact} I${risk.integrityImpact} A${risk.availabilityImpact} (${risk.impact})`;
+      } else {
+        ciaImpact = "";
+      }
+      // Format Risk Level to match webapp
+      let riskLevel = "";
+      if (risk.riskScore != null && !isNaN(Number(risk.riskScore))) {
+        riskLevel = getRiskLevel(Number(risk.riskScore)).level;
+      } else {
+        riskLevel = "";
+      }
+      // Map status to new values
+      const statusMap: Record<string, string> = {
+        identified: "Identified",
+        in_assessment: "In Assessment",
+        pending_treatment: "Pending Treatment",
+        in_progress: "In Progress",
+        remediated: "Remediated",
+        monitoring: "Monitoring",
+        closed: "Closed"
+      };
+      let statusLabel = statusMap[risk.status?.toLowerCase()] || risk.status || "";
+      html += `<tr>`;
+      html += `<td style='border:1px solid #ccc; padding:8px;'>${risk.title || ""}</td>`;
+      html += `<td style='border:1px solid #ccc; padding:8px;'>${risk.assetCategory || ""}</td>`;
+      html += `<td style='border:1px solid #ccc; padding:8px;'>${ciaImpact}</td>`;
+      html += `<td style='border:1px solid #ccc; padding:8px;'>${risk.likelihood != null ? risk.likelihood : ""}</td>`;
+      html += `<td style='border:1px solid #ccc; padding:8px;'>${risk.riskScore != null ? risk.riskScore : ""}</td>`;
+      html += `<td style='border:1px solid #ccc; padding:8px;'>${riskLevel}</td>`;
+      html += `<td style='border:1px solid #ccc; padding:8px;'>${statusLabel}</td>`;
+      html += `<td style='border:1px solid #ccc; padding:8px;'>${risk.updatedAt ? format(new Date(risk.updatedAt), 'MMM dd, yyyy') : ""}</td>`;
+      html += `</tr>`;
+    });
+    html += `</tbody></table>`;
+    tempDiv.innerHTML = html;
+    document.body.appendChild(tempDiv);
+    html2pdf()
+      .set({
+        margin: 0.5,
+        filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+      })
+      .from(tempDiv)
+      .save()
+      .then(() => {
+        document.body.removeChild(tempDiv);
+      });
+  };
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const { selectedOrganization, selectedOrganizationId } = useOrganizations();
@@ -245,12 +334,19 @@ export default function RiskRegister() {
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       draft: { label: "Draft", color: "bg-gray-100 text-gray-600" },
+      identified: { label: "Identified", color: "bg-blue-100 text-blue-700" },
+      in_assessment: { label: "In Assessment", color: "bg-yellow-100 text-yellow-700" },
+      pending_treatment: { label: "Pending Treatment", color: "bg-orange-100 text-orange-700" },
+      in_progress: { label: "In Progress", color: "bg-purple-100 text-purple-700" },
+      remediated: { label: "Remediated", color: "bg-green-100 text-green-700" },
+      monitoring: { label: "Monitoring", color: "bg-cyan-100 text-cyan-700" },
+      closed: { label: "Closed", color: "bg-gray-200 text-gray-700" },
       pending: { label: "Pending Review", color: "bg-yellow-100 text-yellow-700" },
       published: { label: "Published", color: "bg-green-100 text-green-700" },
       archived: { label: "Archived", color: "bg-gray-100 text-gray-600" },
     };
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.draft;
+    const normalized = (status || '').toLowerCase();
+    const config = statusConfig[normalized as keyof typeof statusConfig] || statusConfig.draft;
     return <Badge className={config.color}>{config.label}</Badge>;
   };
 
@@ -285,8 +381,16 @@ export default function RiskRegister() {
         
         <main className="p-6">
           <div className="max-w-7xl mx-auto">
-            <div className="mb-8">
+            <div className="mb-8 flex items-center justify-between">
               {/* Title and description now handled by Header component */}
+              <Button
+                variant="outline"
+                className="bg-green-50 hover:bg-green-100 text-green-600"
+                onClick={handlePrintRiskList}
+                data-testid="button-print-risk-register-list"
+              >
+                Print Risk Register List
+              </Button>
             </div>
 
             {risksLoading ? (
@@ -451,6 +555,7 @@ export default function RiskRegister() {
                       impact: selectedRisk.impact,
                       likelihood: selectedRisk.likelihood,
                       mitigationPlan: selectedRisk.mitigationPlan || '',
+                      status: selectedRisk.status || 'identified',
                     }}
                     onSubmit={(data) => updateRiskMutation.mutate(data)}
                     isLoading={updateRiskMutation.isPending}

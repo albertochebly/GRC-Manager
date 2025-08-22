@@ -83,6 +83,61 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function Documents() {
+  // Print all documents as a table to PDF
+  const handlePrintAllDocuments = () => {
+    // Create a temporary div for the table
+    const tempDiv = document.createElement("div");
+    tempDiv.style.fontSize = "12px";
+    tempDiv.style.maxWidth = "900px";
+    tempDiv.style.lineHeight = "1.5";
+    tempDiv.style.padding = "16px";
+    tempDiv.style.background = "#fff";
+    tempDiv.style.color = "#222";
+  // Get organization name and current date
+  const orgName = selectedOrganization?.name || "";
+  const today = format(new Date(), 'MMM dd, yyyy');
+  // Table HTML
+  let html = `<div style='margin-bottom:16px;'>`;
+  html += `<div style='font-size:18px; font-weight:bold;'>${orgName}</div>`;
+  html += `<div style='font-size:14px; color:#555;'>${today}</div>`;
+  html += `</div>`;
+  html += `<h2 style='margin-bottom:16px;'>Document List</h2>`;
+    html += `<table style='width:100%; border-collapse:collapse;'>`;
+    html += `<thead><tr style='background:#f5f5f5;'>`;
+    html += `<th style='border:1px solid #ccc; padding:8px;'>Title</th>`;
+    html += `<th style='border:1px solid #ccc; padding:8px;'>Type</th>`;
+    html += `<th style='border:1px solid #ccc; padding:8px;'>Version</th>`;
+    html += `<th style='border:1px solid #ccc; padding:8px;'>Status</th>`;
+    html += `<th style='border:1px solid #ccc; padding:8px;'>Last Updated</th>`;
+    html += `</tr></thead><tbody>`;
+    filteredDocuments.forEach((doc: any) => {
+      html += `<tr>`;
+      html += `<td style='border:1px solid #ccc; padding:8px;'>${doc.title || ""}</td>`;
+      html += `<td style='border:1px solid #ccc; padding:8px;'>${doc.documentType || ""}</td>`;
+      html += `<td style='border:1px solid #ccc; padding:8px;'>${doc.version || ""}</td>`;
+      html += `<td style='border:1px solid #ccc; padding:8px;'>${doc.status || ""}</td>`;
+      html += `<td style='border:1px solid #ccc; padding:8px;'>${doc.updatedAt ? format(new Date(doc.updatedAt), 'MMM dd, yyyy') : ""}</td>`;
+      html += `</tr>`;
+    });
+    html += `</tbody></table>`;
+    tempDiv.innerHTML = html;
+    document.body.appendChild(tempDiv);
+    const safeOrgName = orgName.replace(/[^a-zA-Z0-9-_]/g, "_");
+    const filename = `${safeOrgName}_${today}_document-list.pdf`;
+    html2pdf()
+      .set({
+        margin: 0.5,
+        filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+      })
+      .from(tempDiv)
+      .save()
+      .then(() => {
+        document.body.removeChild(tempDiv);
+      });
+  };
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const { selectedOrganization, selectedOrganizationId, setSelectedOrganizationId, organizations } = useOrganizations();
@@ -483,6 +538,16 @@ export default function Documents() {
             <div>
               {/* Title and description now handled by Header component */}
             </div>
+
+            {/* Print All Documents Button */}
+            <Button
+              variant="outline"
+              className="bg-green-50 hover:bg-green-100 text-green-600"
+              onClick={handlePrintAllDocuments}
+              data-testid="button-print-document-list"
+            >
+              Print Document List
+            </Button>
 
             {/* Document type filter */}
             <div className="flex items-center gap-4">
