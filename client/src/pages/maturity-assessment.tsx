@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import autoTable from "jspdf-autotable";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganizations } from "@/hooks/useOrganizations";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -39,6 +42,96 @@ const categories = [
 ];
 
 export default function MaturityAssessment() {
+  // PDF download handler - structured report
+  const handleDownloadPDF = () => {
+    const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+    let y = 40;
+    const left = 40;
+    const lineHeight = 24;
+
+    // Organization name and date
+    pdf.setFontSize(16);
+    pdf.text(`Organization: ${selectedOrganization?.name || "N/A"}`, left, y);
+    y += lineHeight;
+    pdf.setFontSize(12);
+    pdf.text(`Date: ${new Date().toLocaleDateString()}`, left, y);
+    y += lineHeight * 2;
+
+    // Dashboard metrics
+    pdf.setFontSize(14);
+    pdf.text("Dashboard Metrics", left, y);
+    y += lineHeight;
+    pdf.setFontSize(12);
+    pdf.text(`Current Maturity Score: ${calculateMaturityScore('current')}`, left, y);
+    y += lineHeight;
+    pdf.text(`Target Maturity Score: ${calculateMaturityScore('target')}`, left, y);
+    y += lineHeight;
+    pdf.text(`Gap to Target: ${(parseFloat(calculateMaturityScore('target')) - parseFloat(calculateMaturityScore('current'))).toFixed(2)}`, left, y);
+    y += lineHeight * 2;
+
+    // Controls under target score
+    pdf.setFontSize(14);
+    pdf.text("Controls Under Target Score", left, y);
+    y += lineHeight;
+
+    // Table with autoTable
+    const underTarget = assessmentData.filter(a => (a.currentMaturityScore || 0) < (a.targetMaturityScore || 0));
+    const getColor = (level: string): [number, number, number] => {
+      const found = maturityLevels.find(l => l.value === level);
+      // Always return a 3-element array
+      if (!found) return [255,255,255];
+      switch (found.color) {
+        case "bg-red-100 text-red-800": return [255, 204, 203];
+        case "bg-orange-100 text-orange-800": return [255, 229, 180];
+        case "bg-yellow-100 text-yellow-800": return [255, 255, 199];
+        case "bg-blue-100 text-blue-800": return [199, 224, 255];
+        case "bg-green-100 text-green-800": return [199, 255, 220];
+        case "bg-purple-100 text-purple-800": return [229, 199, 255];
+        case "bg-gray-100 text-gray-800": return [240, 240, 240];
+        default: return [255,255,255];
+      }
+    };
+
+    const tableData = underTarget.map(a => [
+      a.category || '',
+      a.section || '',
+      a.standardRef || '',
+      a.question || '',
+      maturityLevels.find(l => l.value === a.currentMaturityLevel)?.label || a.currentMaturityLevel || '',
+      maturityLevels.find(l => l.value === a.targetMaturityLevel)?.label || a.targetMaturityLevel || '',
+      a.currentComments || ''
+    ]);
+    autoTable(pdf, {
+      head: [["Category", "Section", "Standard Ref", "Question", "Current Maturity Level", "Target Maturity Level", "Comments"]],
+      body: tableData,
+      startY: y,
+      styles: { fontSize: 10, cellPadding: 3, overflow: 'linebreak' },
+      columnStyles: {
+        0: { cellWidth: 60 },
+        1: { cellWidth: 70 },
+        2: { cellWidth: 60 },
+        3: { cellWidth: 160 },
+        4: { cellWidth: 70 },
+        5: { cellWidth: 70 },
+        6: { cellWidth: 70 }
+      },
+      headStyles: { fillColor: [230, 230, 230] },
+      didParseCell: function (data) {
+        // Color current maturity level cell
+        if (data.section === 'body' && data.column.index === 4) {
+          const row = underTarget[data.row.index];
+          data.cell.styles.fillColor = getColor(row.currentMaturityLevel);
+        }
+        // Color target maturity level cell
+        if (data.section === 'body' && data.column.index === 5) {
+          const row = underTarget[data.row.index];
+          data.cell.styles.fillColor = getColor(row.targetMaturityLevel);
+        }
+      }
+    });
+
+    pdf.save("ISO27001-GAP-Assessment.pdf");
+  };
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const { selectedOrganizationId, selectedOrganization } = useOrganizations();
@@ -184,6 +277,11 @@ export default function MaturityAssessment() {
       <div className="flex-1 ml-64">
         <Header />
         <main className="p-4">
+          <div className="mb-4 flex justify-end">
+            <Button variant="default" onClick={handleDownloadPDF}>
+              Download PDF Report
+            </Button>
+          </div>
           <div>
             <div className="mb-6">
               <div className="flex items-center justify-between">
@@ -294,10 +392,8 @@ export default function MaturityAssessment() {
                         <TableHead className="w-24">Standard Ref</TableHead>
                         <TableHead className="w-80">Assessment Question</TableHead>
                         <TableHead className="w-48">Current Maturity Level</TableHead>
-                        <TableHead className="w-20">Current Score</TableHead>
                         <TableHead className="w-60">Current Comments</TableHead>
                         <TableHead className="w-48">Target Maturity Level</TableHead>
-                        <TableHead className="w-20">Target Score</TableHead>
                         <TableHead className="w-60">Target Comments</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -315,28 +411,23 @@ export default function MaturityAssessment() {
                             <div className="text-sm leading-relaxed break-words">{assessment.question}</div>
                           </TableCell>
                           <TableCell>
-                            <Select
-                              value={assessment.currentMaturityLevel}
-                              onValueChange={(value) => updateAssessmentItem(assessment.id, 'currentMaturityLevel', value)}
-                              disabled={!canEditAssessments}
-                            >
-                              <SelectTrigger className="w-full">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {maturityLevels.map((level) => (
-                                  <SelectItem key={level.value} value={level.value}>
-                                    {level.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell>
-                            <Badge 
-                              className={`${maturityLevels.find(l => l.score === assessment.currentMaturityScore)?.color || 'bg-gray-100 text-gray-800'}`}
-                            >
-                              {assessment.currentMaturityScore}
+                            <Badge className={`${maturityLevels.find(l => l.value === assessment.currentMaturityLevel)?.color || 'bg-gray-100 text-gray-800'}`}> 
+                              <Select
+                                value={assessment.currentMaturityLevel}
+                                onValueChange={(value) => updateAssessmentItem(assessment.id, 'currentMaturityLevel', value)}
+                                disabled={!canEditAssessments}
+                              >
+                                <SelectTrigger className="w-full">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {maturityLevels.map((level) => (
+                                    <SelectItem key={level.value} value={level.value}>
+                                      {level.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -349,28 +440,23 @@ export default function MaturityAssessment() {
                             />
                           </TableCell>
                           <TableCell>
-                            <Select
-                              value={assessment.targetMaturityLevel}
-                              onValueChange={(value) => updateAssessmentItem(assessment.id, 'targetMaturityLevel', value)}
-                              disabled={!canEditAssessments}
-                            >
-                              <SelectTrigger className="w-full">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {maturityLevels.map((level) => (
-                                  <SelectItem key={level.value} value={level.value}>
-                                    {level.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell>
-                            <Badge 
-                              className={`${maturityLevels.find(l => l.score === assessment.targetMaturityScore)?.color || 'bg-gray-100 text-gray-800'}`}
-                            >
-                              {assessment.targetMaturityScore}
+                            <Badge className={`${maturityLevels.find(l => l.value === assessment.targetMaturityLevel)?.color || 'bg-gray-100 text-gray-800'}`}> 
+                              <Select
+                                value={assessment.targetMaturityLevel}
+                                onValueChange={(value) => updateAssessmentItem(assessment.id, 'targetMaturityLevel', value)}
+                                disabled={!canEditAssessments}
+                              >
+                                <SelectTrigger className="w-full">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {maturityLevels.map((level) => (
+                                    <SelectItem key={level.value} value={level.value}>
+                                      {level.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </Badge>
                           </TableCell>
                           <TableCell>
