@@ -17,7 +17,6 @@ import { Progress } from "@/components/ui/progress";
 import { RefreshCw, BarChart3, Target, TrendingUp, Save } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { assessmentQuestions, maturityLevels } from "@/data/maturityAssessmentData";
-// import { additionalControls } from "@/data/additionalControls";
 
 // Maturity levels configuration - imported from data file
 
@@ -67,17 +66,12 @@ export default function MaturityAssessment() {
 
   // Use API data if available, otherwise use default data
   useEffect(() => {
-    // Always use local data for Mandatory Clauses to guarantee all 29 are shown
-    const mandatoryLocal = allQuestions.filter(item => item.category === "Mandatory Clauses");
-    let annexA = [];
-    if (apiAssessments && Array.isArray(apiAssessments)) {
-      const annexAApi = apiAssessments.filter(item => item.category === "Annex A Controls");
-      const annexALocal = allQuestions.filter(item => item.category === "Annex A Controls");
-      annexA = annexAApi.length > 0 ? annexAApi : annexALocal;
+    // If API returns a complete set, use it. Otherwise, fallback to allQuestions
+    if (apiAssessments && Array.isArray(apiAssessments) && apiAssessments.length >= allQuestions.length) {
+      setAssessmentData(apiAssessments);
     } else {
-      annexA = allQuestions.filter(item => item.category === "Annex A Controls");
+      setAssessmentData(allQuestions);
     }
-    setAssessmentData([...mandatoryLocal, ...annexA]);
   }, [apiAssessments, selectedOrganizationId]);
 
   // Calculate overall maturity score
