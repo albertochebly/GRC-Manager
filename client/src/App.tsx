@@ -16,6 +16,7 @@ import Frameworks from "@/pages/frameworks";
 import ImportExport from "@/pages/import-export";
 import Users from "@/pages/users";
 import MaturityAssessment from "@/pages/maturity-assessment";
+import ReportPreview from "@/pages/ReportPreview";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -47,7 +48,7 @@ function App() {
 
   return (
     <TooltipProvider>
-      <Routes>
+  <Routes>
         {/* Public routes */}
         <Route path="/login" element={<Login />} />
         <Route 
@@ -59,7 +60,8 @@ function App() {
           } 
         />
 
-        {/* Protected routes */}
+  {/* Protected routes */}
+  <Route path="/report-preview" element={<ReportPreview />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
         <Route path="/risk-register" element={<ProtectedRoute><RiskRegister /></ProtectedRoute>} />
