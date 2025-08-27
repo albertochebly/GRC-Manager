@@ -16,7 +16,7 @@ import Frameworks from "@/pages/frameworks";
 import ImportExport from "@/pages/import-export";
 import Users from "@/pages/users";
 import MaturityAssessment from "@/pages/maturity-assessment";
-import ReportPreview from "@/pages/ReportPreview";
+// ...existing code...
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -61,7 +61,7 @@ function App() {
         />
 
   {/* Protected routes */}
-  <Route path="/report-preview" element={<ReportPreview />} />
+  // ...existing code...
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
         <Route path="/risk-register" element={<ProtectedRoute><RiskRegister /></ProtectedRoute>} />
