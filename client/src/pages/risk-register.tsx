@@ -552,32 +552,61 @@ export default function RiskRegister() {
                 {selectedRisk && (
                   <RiskForm 
                     initialData={{
-                      riskId: selectedRisk.riskId ?? "",
-                      title: selectedRisk.title ?? "",
-                      description: selectedRisk.description ?? "",
-                      riskType: selectedRisk.riskType ?? "asset",
-                      assetCategory: selectedRisk.assetCategory ?? "",
-                      assetDescription: selectedRisk.assetDescription ?? "",
-                      confidentialityImpact: typeof selectedRisk.confidentialityImpact === 'number' && !Number.isNaN(selectedRisk.confidentialityImpact) ? selectedRisk.confidentialityImpact : 1,
-                      integrityImpact: typeof selectedRisk.integrityImpact === 'number' && !Number.isNaN(selectedRisk.integrityImpact) ? selectedRisk.integrityImpact : 1,
-                      availabilityImpact: typeof selectedRisk.availabilityImpact === 'number' && !Number.isNaN(selectedRisk.availabilityImpact) ? selectedRisk.availabilityImpact : 1,
-                      impact: typeof selectedRisk.impact === 'number' && !Number.isNaN(selectedRisk.impact) ? selectedRisk.impact : 1,
-                      likelihood: typeof selectedRisk.likelihood === 'number' && !Number.isNaN(selectedRisk.likelihood) ? selectedRisk.likelihood : 1,
-                      mitigationPlan: selectedRisk.mitigationPlan ?? "",
-                      status: selectedRisk.status ?? "identified",
-                      statusComments: selectedRisk.statusComments ?? "",
-                      riskResponseStrategy: selectedRisk.riskResponseStrategy ?? undefined,
-                      newMeasuresAndControls: selectedRisk.newMeasuresAndControls ?? "",
-                      residualImpactLevel: selectedRisk.residualImpactLevel ?? undefined,
-                      residualImpactRating: typeof selectedRisk.residualImpactRating === 'number' && !Number.isNaN(selectedRisk.residualImpactRating) ? selectedRisk.residualImpactRating : undefined,
-                      residualLikelihoodLevel: selectedRisk.residualLikelihoodLevel ?? undefined,
-                      residualLikelihoodRating: typeof selectedRisk.residualLikelihoodRating === 'number' && !Number.isNaN(selectedRisk.residualLikelihoodRating) ? selectedRisk.residualLikelihoodRating : undefined,
-                      residualRiskLevel: selectedRisk.residualRiskLevel ?? undefined,
-                      residualRiskRating: typeof selectedRisk.residualRiskRating === 'number' && !Number.isNaN(selectedRisk.residualRiskRating) ? selectedRisk.residualRiskRating : undefined,
-                      riskDueDate: selectedRisk.riskDueDate ?? "",
-                      riskCloseDate: selectedRisk.riskCloseDate ?? "",
-                      overdue: selectedRisk.overdue ?? "",
-                      nextReviewDate: selectedRisk.nextReviewDate ?? "",
+                      title: selectedRisk.title,
+                      description: selectedRisk.description || '',
+                      riskId: selectedRisk.riskId,
+                      riskType: (selectedRisk.riskType as 'asset' | 'scenario') || 'asset',
+                      assetCategory: (selectedRisk as any).assetCategory || '',
+                      assetDescription: (selectedRisk as any).assetDescription || '',
+                      confidentialityImpact: (selectedRisk as any).confidentialityImpact || 1,
+                      integrityImpact: (selectedRisk as any).integrityImpact || 1,
+                      availabilityImpact: (selectedRisk as any).availabilityImpact || 1,
+                      impact: selectedRisk.impact,
+                      likelihood: selectedRisk.likelihood,
+                      mitigationPlan: selectedRisk.mitigationPlan || '',
+                      status: (selectedRisk.status as
+                        | "identified"
+                        | "in_assessment"
+                        | "pending_treatment"
+                        | "in_progress"
+                        | "remediated"
+                        | "monitoring"
+                        | "closed") || "identified",
+                      statusComments: (selectedRisk as any).statusComments || '',
+                      riskResponseStrategy: (selectedRisk as any).riskResponseStrategy as
+                        | "Accept"
+                        | "Mitigate"
+                        | "Transfer"
+                        | "Avoid"
+                        | undefined,
+                      newMeasuresAndControls: (selectedRisk as any).newMeasuresAndControls || '',
+                      residualImpactLevel: (selectedRisk as any).residualImpactLevel as
+                        | "Very Low"
+                        | "Low"
+                        | "Medium"
+                        | "High"
+                        | "Very High"
+                        | undefined,
+                      residualLikelihoodLevel: (selectedRisk as any).residualLikelihoodLevel as
+                        | "Rare"
+                        | "Unlikely"
+                        | "Possible"
+                        | "Likely"
+                        | "Highly Likely"
+                        | undefined,
+                      residualRiskLevel: (selectedRisk as any).residualRiskLevel as
+                        | "Low"
+                        | "Medium"
+                        | "High"
+                        | "Critical"
+                        | undefined,
+                      residualImpactRating: (selectedRisk as any).residualImpactRating || undefined,
+                      residualLikelihoodRating: (selectedRisk as any).residualLikelihoodRating || undefined,
+                      residualRiskRating: (selectedRisk as any).residualRiskRating || undefined,
+                      riskDueDate: (selectedRisk as any).riskDueDate || '',
+                      riskCloseDate: (selectedRisk as any).riskCloseDate || '',
+                      overdue: (selectedRisk as any).overdue || '',
+                      nextReviewDate: (selectedRisk as any).nextReviewDate || '',
                     }}
                     onSubmit={(data) => updateRiskMutation.mutate(data)}
                     isLoading={updateRiskMutation.isPending}

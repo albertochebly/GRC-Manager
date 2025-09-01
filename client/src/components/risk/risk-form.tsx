@@ -60,6 +60,8 @@ export default function RiskForm({ onSubmit, isLoading, initialData }: RiskFormP
 
   // Error state for failed submit
   const [submitErrors, setSubmitErrors] = React.useState<any>(null);
+  const [, forceUpdate] = React.useReducer(x => x + 1, 0);
+  const errorSummaryRef = React.useRef<HTMLDivElement>(null);
   const {
     register,
     handleSubmit,
@@ -211,8 +213,7 @@ export default function RiskForm({ onSubmit, isLoading, initialData }: RiskFormP
           break;
 
         case "Mitigate":
-        case "Treat":
-          // For Mitigate/Treat: risk is overdue if no due date is set or due date has passed
+          // For Mitigate: risk is overdue if no due date is set or due date has passed
           if (!riskDueDate || riskDueDate.trim() === "") {
             overdueStatus = "Missing Risk Due Date";
           } else {
