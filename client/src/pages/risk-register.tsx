@@ -7,6 +7,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import Sidebar from "@/components/layout/sidebar";
+import RiskMetricsDashboard from "@/components/risk/RiskMetricsDashboard";
+import { calculateRiskMetrics } from "@/components/risk/risk-metrics-util";
 import Header from "@/components/layout/header";
 import RiskForm from "@/components/risk/risk-form";
 import { Button } from "@/components/ui/button";
@@ -31,6 +33,49 @@ import { format } from "date-fns";
 import html2pdf from "html2pdf.js";
 
 export default function RiskRegister() {
+
+  // Get organization context first
+  const { selectedOrganization, selectedOrganizationId } = useOrganizations();
+  // Get risks for selected organization
+  const { data: risks = [], isLoading: risksLoading } = useQuery<Risk[]>({
+    queryKey: ["/api/organizations", selectedOrganizationId, "risks"],
+    queryFn: async (): Promise<Risk[]> => {
+      if (!selectedOrganizationId) {
+        throw new Error('No organization selected');
+      }
+      const response = await apiRequest(
+        "GET",
+        `/api/organizations/${selectedOrganizationId}/risks`
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch risks');
+      }
+      const data = await response.json();
+      return data;
+    },
+    enabled: !!selectedOrganizationId,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
+    refetchInterval: 1000,
+    retry: (failureCount, error) => {
+      if (isUnauthorizedError(error as Error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return false;
+      }
+      return failureCount < 3;
+    },
+  });
+    // Calculate metrics for dashboard (after risks is initialized)
+    const metrics = calculateRiskMetrics(risks);
   // Print all risks as a table to PDF
   const handlePrintRiskList = () => {
     const orgName = selectedOrganization?.name || "";
@@ -121,7 +166,6 @@ export default function RiskRegister() {
   };
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
-  const { selectedOrganization, selectedOrganizationId } = useOrganizations();
   const [isAssetDialogOpen, setIsAssetDialogOpen] = useState(false);
   const [isScenarioDialogOpen, setIsScenarioDialogOpen] = useState(false);
   const [riskToDelete, setRiskToDelete] = useState<string | null>(null);
@@ -138,45 +182,9 @@ export default function RiskRegister() {
   const canDeleteRisks = userRole === "admin";
 
   // Get risks for selected organization
-  const { data: risks = [], isLoading: risksLoading } = useQuery<Risk[]>({
-    queryKey: ["/api/organizations", selectedOrganizationId, "risks"],
-    queryFn: async (): Promise<Risk[]> => {
-      if (!selectedOrganizationId) {
-        throw new Error('No organization selected');
-      }
 
-      const response = await apiRequest(
-        "GET",
-        `/api/organizations/${selectedOrganizationId}/risks`
-      );
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch risks');
-      }
-      const data = await response.json();
-      return data;
-    },
-    enabled: !!selectedOrganizationId,
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: "always",
-    refetchInterval: 1000,
-    retry: (failureCount, error) => {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return false;
-      }
-      return failureCount < 3;
-    },
-  });
+
+  // Calculate metrics for dashboard (after risks is initialized)
 
   // Filter risks by type
   const assetRisks = risks.filter((risk: any) => (risk.riskType || 'asset') === 'asset');
@@ -324,6 +332,7 @@ export default function RiskRegister() {
   });
 
   const getRiskLevel = (score: number): { level: string; color: string } => {
+  // Calculate metrics for dashboard (after risks is initialized)
     if (score >= 20) return { level: "Critical", color: "text-red-600 bg-red-50" };
     if (score >= 15) return { level: "High", color: "text-orange-600 bg-orange-50" };
     if (score >= 10) return { level: "Medium", color: "text-yellow-600 bg-yellow-50" };
@@ -375,12 +384,12 @@ export default function RiskRegister() {
   return (
     <div className="min-h-screen flex bg-gray-50" data-testid="risk-register-page">
       <Sidebar />
-      
       <div className="flex-1 ml-64">
         <Header />
-        
         <main className="p-6">
           <div className="max-w-7xl mx-auto">
+            {/* --- Risk Metrics Dashboard --- */}
+            <RiskMetricsDashboard metrics={metrics} />
             <div className="mb-8 flex items-center justify-between">
               {/* Title and description now handled by Header component */}
               <Button
@@ -543,26 +552,32 @@ export default function RiskRegister() {
                 {selectedRisk && (
                   <RiskForm 
                     initialData={{
-                      title: selectedRisk.title,
-                      description: selectedRisk.description || '',
-                      riskId: selectedRisk.riskId,
-                      riskType: (selectedRisk.riskType as 'asset' | 'scenario') || 'asset',
-                      assetCategory: (selectedRisk as any).assetCategory || '',
-                      assetDescription: (selectedRisk as any).assetDescription || '',
-                      confidentialityImpact: (selectedRisk as any).confidentialityImpact || 1,
-                      integrityImpact: (selectedRisk as any).integrityImpact || 1,
-                      availabilityImpact: (selectedRisk as any).availabilityImpact || 1,
-                      impact: selectedRisk.impact,
-                      likelihood: selectedRisk.likelihood,
-                      mitigationPlan: selectedRisk.mitigationPlan || '',
-                      status: (selectedRisk.status as
-                        | "identified"
-                        | "in_assessment"
-                        | "pending_treatment"
-                        | "in_progress"
-                        | "remediated"
-                        | "monitoring"
-                        | "closed") || "identified",
+                      riskId: selectedRisk.riskId ?? "",
+                      title: selectedRisk.title ?? "",
+                      description: selectedRisk.description ?? "",
+                      riskType: selectedRisk.riskType ?? "asset",
+                      assetCategory: selectedRisk.assetCategory ?? "",
+                      assetDescription: selectedRisk.assetDescription ?? "",
+                      confidentialityImpact: typeof selectedRisk.confidentialityImpact === 'number' && !Number.isNaN(selectedRisk.confidentialityImpact) ? selectedRisk.confidentialityImpact : 1,
+                      integrityImpact: typeof selectedRisk.integrityImpact === 'number' && !Number.isNaN(selectedRisk.integrityImpact) ? selectedRisk.integrityImpact : 1,
+                      availabilityImpact: typeof selectedRisk.availabilityImpact === 'number' && !Number.isNaN(selectedRisk.availabilityImpact) ? selectedRisk.availabilityImpact : 1,
+                      impact: typeof selectedRisk.impact === 'number' && !Number.isNaN(selectedRisk.impact) ? selectedRisk.impact : 1,
+                      likelihood: typeof selectedRisk.likelihood === 'number' && !Number.isNaN(selectedRisk.likelihood) ? selectedRisk.likelihood : 1,
+                      mitigationPlan: selectedRisk.mitigationPlan ?? "",
+                      status: selectedRisk.status ?? "identified",
+                      statusComments: selectedRisk.statusComments ?? "",
+                      riskResponseStrategy: selectedRisk.riskResponseStrategy ?? undefined,
+                      newMeasuresAndControls: selectedRisk.newMeasuresAndControls ?? "",
+                      residualImpactLevel: selectedRisk.residualImpactLevel ?? undefined,
+                      residualImpactRating: typeof selectedRisk.residualImpactRating === 'number' && !Number.isNaN(selectedRisk.residualImpactRating) ? selectedRisk.residualImpactRating : undefined,
+                      residualLikelihoodLevel: selectedRisk.residualLikelihoodLevel ?? undefined,
+                      residualLikelihoodRating: typeof selectedRisk.residualLikelihoodRating === 'number' && !Number.isNaN(selectedRisk.residualLikelihoodRating) ? selectedRisk.residualLikelihoodRating : undefined,
+                      residualRiskLevel: selectedRisk.residualRiskLevel ?? undefined,
+                      residualRiskRating: typeof selectedRisk.residualRiskRating === 'number' && !Number.isNaN(selectedRisk.residualRiskRating) ? selectedRisk.residualRiskRating : undefined,
+                      riskDueDate: selectedRisk.riskDueDate ?? "",
+                      riskCloseDate: selectedRisk.riskCloseDate ?? "",
+                      overdue: selectedRisk.overdue ?? "",
+                      nextReviewDate: selectedRisk.nextReviewDate ?? "",
                     }}
                     onSubmit={(data) => updateRiskMutation.mutate(data)}
                     isLoading={updateRiskMutation.isPending}

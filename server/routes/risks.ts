@@ -55,6 +55,19 @@ router.get("/:organizationId/risks", isAuthenticated, async (req, res) => {
         riskScore: risks.riskScore,
         mitigationPlan: risks.mitigationPlan,
         status: risks.status,
+        statusComments: risks.statusComments,
+        riskResponseStrategy: risks.riskResponseStrategy,
+        newMeasuresAndControls: risks.newMeasuresAndControls,
+        residualImpactLevel: risks.residualImpactLevel,
+        residualImpactRating: risks.residualImpactRating,
+        residualLikelihoodLevel: risks.residualLikelihoodLevel,
+        residualLikelihoodRating: risks.residualLikelihoodRating,
+        residualRiskLevel: risks.residualRiskLevel,
+        residualRiskRating: risks.residualRiskRating,
+        riskDueDate: risks.riskDueDate,
+        riskCloseDate: risks.riskCloseDate,
+        overdue: risks.overdue,
+        nextReviewDate: risks.nextReviewDate,
         ownerId: risks.ownerId,
         createdBy: risks.createdBy,
         approvedBy: risks.approvedBy,
@@ -161,7 +174,34 @@ router.put("/:organizationId/risks/:riskId", isAuthenticated, async (req, res) =
 
     const { organizationId, riskId } = req.params;
     const userId = req.user?.id;
-    const { riskId: newRiskId, title, description, riskType, assetCategory, assetDescription, confidentialityImpact, integrityImpact, availabilityImpact, impact, likelihood, mitigationPlan, status } = req.body;
+    const { 
+      riskId: newRiskId, 
+      title, 
+      description, 
+      riskType, 
+      assetCategory, 
+      assetDescription, 
+      confidentialityImpact, 
+      integrityImpact, 
+      availabilityImpact, 
+      impact, 
+      likelihood, 
+      mitigationPlan, 
+      status,
+      statusComments,
+      riskResponseStrategy,
+      newMeasuresAndControls,
+      residualImpactLevel,
+      residualImpactRating,
+      residualLikelihoodLevel,
+      residualLikelihoodRating,
+      residualRiskLevel,
+      residualRiskRating,
+      riskDueDate,
+      riskCloseDate,
+      overdue,
+      nextReviewDate
+    } = req.body;
 
     if (!userId) {
       return res.status(401).json({ error: "User not authenticated" });
@@ -234,6 +274,19 @@ router.put("/:organizationId/risks/:riskId", isAuthenticated, async (req, res) =
         riskScore,
         mitigationPlan: mitigationPlan !== undefined ? mitigationPlan : existingRisk[0].mitigationPlan,
         status: status || existingRisk[0].status,
+        statusComments: statusComments !== undefined ? statusComments : existingRisk[0].statusComments,
+        riskResponseStrategy: riskResponseStrategy !== undefined ? riskResponseStrategy : existingRisk[0].riskResponseStrategy,
+        newMeasuresAndControls: newMeasuresAndControls !== undefined ? newMeasuresAndControls : existingRisk[0].newMeasuresAndControls,
+        residualImpactLevel: residualImpactLevel !== undefined ? residualImpactLevel : existingRisk[0].residualImpactLevel,
+        residualImpactRating: residualImpactRating !== undefined ? residualImpactRating : existingRisk[0].residualImpactRating,
+        residualLikelihoodLevel: residualLikelihoodLevel !== undefined ? residualLikelihoodLevel : existingRisk[0].residualLikelihoodLevel,
+        residualLikelihoodRating: residualLikelihoodRating !== undefined ? residualLikelihoodRating : existingRisk[0].residualLikelihoodRating,
+        residualRiskLevel: residualRiskLevel !== undefined ? residualRiskLevel : existingRisk[0].residualRiskLevel,
+        residualRiskRating: residualRiskRating !== undefined ? residualRiskRating : existingRisk[0].residualRiskRating,
+        riskDueDate: riskDueDate !== undefined ? riskDueDate : existingRisk[0].riskDueDate,
+        riskCloseDate: riskCloseDate !== undefined ? riskCloseDate : existingRisk[0].riskCloseDate,
+        overdue: overdue !== undefined ? overdue : existingRisk[0].overdue,
+        nextReviewDate: nextReviewDate !== undefined ? nextReviewDate : existingRisk[0].nextReviewDate,
         updatedAt: new Date(),
       })
       .where(eq(risks.id, riskId))

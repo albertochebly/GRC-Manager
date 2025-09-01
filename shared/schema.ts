@@ -168,6 +168,19 @@ export const risks = pgTable("risks", {
   riskScore: decimal("risk_score", { precision: 3, scale: 1 }), // calculated: impact * likelihood
   mitigationPlan: text("mitigation_plan"),
   status: varchar("status", { length: 50 }).default("draft"), // draft, pending, published, archived
+  statusComments: text("status_comments"), // comments about the status
+  riskResponseStrategy: varchar("risk_response_strategy", { length: 50 }), // Accept, Mitigate, Transfer, Avoid
+  newMeasuresAndControls: text("new_measures_and_controls"), // new measures and controls description
+  residualImpactLevel: varchar("residual_impact_level", { length: 50 }), // Very Low, Low, Medium, High, Very High
+  residualImpactRating: integer("residual_impact_rating"), // 1-5 scale
+  residualLikelihoodLevel: varchar("residual_likelihood_level", { length: 50 }), // Rare, Unlikely, Possible, Likely, Highly Likely
+  residualLikelihoodRating: integer("residual_likelihood_rating"), // 1-5 scale
+  residualRiskLevel: varchar("residual_risk_level", { length: 50 }), // Low, Medium, High, Critical
+  residualRiskRating: integer("residual_risk_rating"), // 1-10 scale
+  riskDueDate: varchar("risk_due_date", { length: 20 }), // date string
+  riskCloseDate: varchar("risk_close_date", { length: 20 }), // date string
+  overdue: varchar("overdue", { length: 200 }), // overdue status text
+  nextReviewDate: varchar("next_review_date", { length: 20 }), // date string
   ownerId: varchar("owner_id").notNull().references(() => users.id),
   createdBy: varchar("created_by").notNull().references(() => users.id),
   approvedBy: varchar("approved_by").references(() => users.id),

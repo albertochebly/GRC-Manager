@@ -7,6 +7,7 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import StatsGrid from "@/components/dashboard/stats-grid";
+import RiskMetricsSection from "@/components/risk/RiskMetricsSection";
 import ActivityPanel from "@/components/dashboard/activity-panel";
 import SidebarWidgets from "@/components/dashboard/sidebar-widgets";
 
@@ -136,6 +137,16 @@ export default function Dashboard() {
           </div>
 
           <StatsGrid stats={stats} isLoading={statsLoading} />
+
+          {/* --- Risk Metrics Section --- */}
+          {selectedOrganizationId && (
+            <div className="mt-8">
+              <h2 className="text-xl font-bold mb-4">Risk Register Metrics</h2>
+              <div className="mb-8">
+                <RiskMetricsSection organizationId={selectedOrganizationId} />
+              </div>
+            </div>
+          )}
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
             <div className="lg:col-span-2">
