@@ -100,19 +100,6 @@ export default function MaturityAssessment() {
       ]),
       gapAssessmentTemplate,
     });
-        await generateMaturityAssessmentPDF({
-          maturityLevels,
-          gapTableData: assessmentData.map(a => [
-            a.category || '',
-            a.section || '',
-            a.standardRef || '',
-            a.question || '',
-            maturityLevels.find(l => l.value === a.currentMaturityLevel)?.label || a.currentMaturityLevel || '',
-            maturityLevels.find(l => l.value === a.targetMaturityLevel)?.label || a.targetMaturityLevel || '',
-            a.currentComments || ''
-          ]),
-          gapAssessmentTemplate,
-        });
   };
 
   // Utility: Calculate average maturity score
