@@ -47,11 +47,6 @@ export async function generateMaturityAssessmentPDF({
     afterHTML = "";
   }
 
-  // If template is empty or only whitespace, do not generate PDF
-  if (!gapAssessmentTemplate || !gapAssessmentTemplate.trim()) {
-    return;
-  }
-
   // Helper to render HTML to PDF and measure height using a hidden DOM element
   const measureHtmlHeight = (htmlText) => {
     const tempDiv = document.createElement('div');
@@ -137,9 +132,43 @@ export async function generateMaturityAssessmentPDF({
       y = await renderHtmlToPdf(afterHTML, y, "bottom");
     }
   } else {
-    // No placeholder: render the template only, do NOT render the table
+    // No placeholder: render the template first (if any), then always render the table
     if (gapAssessmentTemplate && gapAssessmentTemplate.trim()) {
       y = await renderHtmlToPdf(gapAssessmentTemplate, y, "bottom");
+    }
+    
+    // Always render the table (even if no template)
+    if (gappedRows && gappedRows.length) {
+      autoTable(pdf, {
+        startY: y,
+        head: [[
+          "Category", "Section", "Standard Ref", "Assessment Question",
+          "Current Maturity Level", "Target Maturity Level", "Current Comments"
+        ]],
+        body: gappedRows,
+        theme: "grid",
+        styles: { fontSize: 10, cellPadding: 2 },
+        headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+        margin: { top: 0, bottom: BOTTOM_MARGIN, left: SIDE_MARGIN, right: SIDE_MARGIN },
+      });
+      y = ((pdf as any).lastAutoTable ? (pdf as any).lastAutoTable.finalY : y) + 24;
+    } else {
+      // If no gapped rows, render all assessment data
+      if (gapTableData && gapTableData.length) {
+        autoTable(pdf, {
+          startY: y,
+          head: [[
+            "Category", "Section", "Standard Ref", "Assessment Question",
+            "Current Maturity Level", "Target Maturity Level", "Current Comments"
+          ]],
+          body: gapTableData,
+          theme: "grid",
+          styles: { fontSize: 10, cellPadding: 2 },
+          headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+          margin: { top: 0, bottom: BOTTOM_MARGIN, left: SIDE_MARGIN, right: SIDE_MARGIN },
+        });
+        y = ((pdf as any).lastAutoTable ? (pdf as any).lastAutoTable.finalY : y) + 24;
+      }
     }
   }
   pdf.save("Maturity-Assessment-Report.pdf");
