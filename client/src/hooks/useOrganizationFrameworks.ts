@@ -11,7 +11,10 @@ export function useOrganizationFrameworks() {
   const { data: organizationFrameworks = [], isLoading } = useQuery<Framework[]>({
     queryKey: ["/api/organizations", selectedOrganizationId, "frameworks"],
     enabled: isAuthenticated && !!selectedOrganizationId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 1 * 60 * 1000, // 1 minute (reduced from 5 minutes for more real-time updates)
+    gcTime: 2 * 60 * 1000, // 2 minutes cache time
+    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window gains focus
     retry: (failureCount, error: any) => {
       // Don't retry on auth errors
       if (error?.status === 401) {

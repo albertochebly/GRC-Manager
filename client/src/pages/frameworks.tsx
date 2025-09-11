@@ -121,8 +121,10 @@ export default function Frameworks() {
       return response.json();
     },
     onSuccess: (data) => {
+      // Invalidate all relevant queries to ensure real-time updates
       queryClient.invalidateQueries({ queryKey: ["/api/organizations", selectedOrganizationId, "frameworks"] });
       queryClient.invalidateQueries({ queryKey: ["/api/organizations", selectedOrganizationId, "stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/frameworks"] });
       
       const documentsCreated = data?.documentsCreated || 0;
       const documentsExisted = data?.documentsExisted || 0;
@@ -168,8 +170,10 @@ export default function Frameworks() {
       return response.json();
     },
     onSuccess: () => {
+      // Invalidate all relevant queries to ensure real-time updates
       queryClient.invalidateQueries({ queryKey: ["/api/organizations", selectedOrganizationId, "frameworks"] });
       queryClient.invalidateQueries({ queryKey: ["/api/organizations", selectedOrganizationId, "stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/frameworks"] });
       toast({
         title: "Framework Deactivated",
         description: "Framework has been deactivated successfully. The documents created from this framework remain available.",
@@ -195,6 +199,7 @@ export default function Frameworks() {
       return response.json();
     },
     onSuccess: () => {
+      // Invalidate framework queries to ensure real-time updates
       queryClient.invalidateQueries({ queryKey: ["/api/frameworks"] });
       setIsCreateFrameworkDialogOpen(false);
       setFrameworkForm({ name: "", version: "", description: "" });
@@ -222,6 +227,7 @@ export default function Frameworks() {
       return response.json();
     },
     onSuccess: () => {
+      // Invalidate framework queries to ensure real-time updates
       queryClient.invalidateQueries({ queryKey: ["/api/frameworks"] });
       setIsEditFrameworkDialogOpen(false);
       setEditingFramework(null);
@@ -250,6 +256,7 @@ export default function Frameworks() {
       return response.json();
     },
     onSuccess: () => {
+      // Invalidate framework queries to ensure real-time updates
       queryClient.invalidateQueries({ queryKey: ["/api/frameworks"] });
       toast({
         title: "Framework Deleted",
