@@ -253,14 +253,16 @@ export default function PCIDSSGapAssessment() {
           {/* Requirement Filter */}
           <div className="mb-6">
             <Tabs value={selectedRequirement} onValueChange={setSelectedRequirement}>
-              <TabsList className="grid grid-cols-6 lg:grid-cols-13 w-full">
-                <TabsTrigger value="all">All</TabsTrigger>
-                {Array.from({length: 12}, (_, i) => (
-                  <TabsTrigger key={i + 1} value={String(i + 1)}>
-                    Req {i + 1}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
+              <div className="overflow-x-auto">
+                <TabsList className="inline-flex h-10 items-center justify-start rounded-md bg-muted p-1 text-muted-foreground min-w-full w-max">
+                  <TabsTrigger value="all" className="text-xs sm:text-sm whitespace-nowrap px-3 py-1.5">All</TabsTrigger>
+                  {Array.from({length: 12}, (_, i) => (
+                    <TabsTrigger key={i + 1} value={String(i + 1)} className="text-xs sm:text-sm whitespace-nowrap px-3 py-1.5">
+                      Req {i + 1}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </div>
             </Tabs>
           </div>
 

@@ -14,20 +14,34 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganizations } from "@/hooks/useOrganizations";
+import { useOrganizationFrameworks } from "@/hooks/useOrganizationFrameworks";
 
 export default function Sidebar() {
   const location = useLocation();
   const { user } = useAuth();
   const { organizations, selectedOrganization, selectedOrganizationId, setSelectedOrganizationId } = useOrganizations();
+  const { isPCIDSSActive, isISO27001Active } = useOrganizationFrameworks();
 
+  // Base navigation items
+  const baseNavigation = [
+    { name: "Dashboard", href: "/dashboard", icon: Home },
+    { name: "Documents", href: "/documents", icon: FileText },
+    { name: "Risk Register", href: "/risk-register", icon: AlertTriangle },
+    { name: "Frameworks", href: "/frameworks", icon: Clipboard },
+    { name: "Users & Roles", href: "/users", icon: Users },
+  ];
+
+  // Conditional navigation items based on activated frameworks
+  const frameworkNavigation = [
+    ...(isISO27001Active ? [{ name: "ISO27001 GAP Assessment", href: "/maturity-assessment", icon: BarChart3 }] : []),
+    ...(isPCIDSSActive ? [{ name: "PCI DSS GAP Assessment", href: "/pci-dss-gap-assessment", icon: CreditCard }] : []),
+  ];
+
+  // Combine base navigation with framework-specific items
   const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: Home },
-  { name: "Documents", href: "/documents", icon: FileText },
-  { name: "Risk Register", href: "/risk-register", icon: AlertTriangle },
-  { name: "ISO27001 GAP Assessment", href: "/maturity-assessment", icon: BarChart3 },
-  { name: "PCI DSS GAP Assessment", href: "/pci-dss-gap-assessment", icon: CreditCard },
-  { name: "Frameworks", href: "/frameworks", icon: Clipboard },
-  { name: "Users & Roles", href: "/users", icon: Users },
+    ...baseNavigation.slice(0, 3), // Dashboard, Documents, Risk Register
+    ...frameworkNavigation, // Framework-specific assessments
+    ...baseNavigation.slice(3), // Frameworks, Users & Roles
   ];
 
   // Filter navigation items based on user role

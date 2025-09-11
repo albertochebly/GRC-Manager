@@ -34,16 +34,16 @@ declare module "express" {
 export async function registerRoutes(app: Express): Promise<Server> {
   console.log('Registering routes...');
   
-  // Mount standalone framework routes
+  // Mount standalone framework routes (for global framework management)
   app.use("/api/frameworks", frameworkRoutes);
   console.log('Framework routes mounted at /api/frameworks');
   
-    // Mount routes
+  // Mount routes
   app.use('/api/users', userRoutes);
   app.use('/api/organizations', organizationRoutes);
   app.use('/api/organizations', documentRoutes);
   app.use('/api/organizations', riskRoutes);
-  app.use('/api/frameworks', frameworkRoutes);
+  app.use('/api/organizations', frameworkRoutes); // This allows /api/organizations/:orgId/frameworks
   app.use('/api/organizations', maturityAssessmentRoutes);
   app.use('/api/organizations', pciDssAssessmentRoutes);
 
