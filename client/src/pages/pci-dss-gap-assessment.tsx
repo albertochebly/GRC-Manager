@@ -18,7 +18,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   pciDssRequirements, 
   statusOptions, 
-  getRequirementGroups, 
   calculateCompletionStats,
   type PCIDSSAssessment 
 } from "@/data/pciDssAssessmentData";
@@ -40,23 +39,55 @@ export default function PCIDSSGapAssessment() {
     queryKey: ["/api/organizations", selectedOrganizationId, "pci-dss-assessments"],
     queryFn: async () => {
       if (!selectedOrganizationId) return [];
-      const response = await apiRequest("GET", `/api/organizations/${selectedOrganizationId}/pci-dss-assessments`);
-      if (!response.ok) {
-        if (response.status === 404) {
-          // If endpoint doesn't exist yet, return empty array
-          return [];
+      try {
+        const response = await apiRequest("GET", `/api/organizations/${selectedOrganizationId}/pci-dss-assessments`);
+        if (!response.ok) {
+          if (response.status === 404) {
+            // If endpoint doesn't exist yet, return empty array
+            console.log("PCI DSS assessments endpoint not found, using default data");
+            return [];
+          }
+          throw new Error("Failed to fetch PCI DSS assessments");
         }
-        throw new Error("Failed to fetch PCI DSS assessments");
+        const data = await response.json();
+        console.log("Fetched PCI DSS assessments:", data);
+        return data;
+      } catch (error) {
+        console.error("Error fetching PCI DSS assessments:", error);
+        return []; // Return empty array on error to use default data
       }
-      return response.json();
     },
     enabled: !!selectedOrganizationId,
+    staleTime: 1 * 60 * 1000, // 1 minute
+    retry: false, // Don't retry on failure
   });
 
   // Use API data if available, otherwise use default data
   useEffect(() => {
-    if (apiAssessments && Array.isArray(apiAssessments) && apiAssessments.length >= pciDssRequirements.length) {
-      setAssessmentData(apiAssessments);
+    if (apiAssessments && Array.isArray(apiAssessments) && apiAssessments.length > 0) {
+      // Create a map of saved assessments by requirement
+      const savedAssessmentMap = new Map();
+      apiAssessments.forEach(saved => {
+        savedAssessmentMap.set(saved.requirement, saved);
+      });
+
+      // Merge saved data with default structure
+      const mergedAssessments = pciDssRequirements.map(defaultAssessment => {
+        const saved = savedAssessmentMap.get(defaultAssessment.requirement);
+        if (saved && !defaultAssessment.isHeader) {
+          return {
+            ...defaultAssessment,
+            status: saved.status || defaultAssessment.status,
+            owner: saved.owner || defaultAssessment.owner,
+            task: saved.task || defaultAssessment.task,
+            completionDate: saved.completionDate || defaultAssessment.completionDate,
+            comments: saved.comments || defaultAssessment.comments,
+          };
+        }
+        return defaultAssessment;
+      });
+
+      setAssessmentData(mergedAssessments);
     } else {
       setAssessmentData(pciDssRequirements);
     }
@@ -65,22 +96,28 @@ export default function PCIDSSGapAssessment() {
   // Save assessment mutation
   const saveAssessmentMutation = useMutation({
     mutationFn: async (data: PCIDSSAssessment[]) => {
+      console.log("Saving assessment data:", data.length, "items");
       const response = await apiRequest("POST", `/api/organizations/${selectedOrganizationId}/pci-dss-assessments`, {
         assessments: data
       });
       if (!response.ok) {
-        throw new Error("Failed to save PCI DSS assessment");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to save PCI DSS assessment");
       }
       return response.json();
     },
     onSuccess: () => {
-      toast({ title: "PCI DSS assessment saved successfully!" });
-      refetch();
+      toast({ 
+        title: "Assessment Saved", 
+        description: "PCI DSS assessment saved successfully!" 
+      });
+      refetch(); // Refetch the saved data
     },
     onError: (error) => {
+      console.error("Save error:", error);
       toast({ 
         title: "Error saving assessment", 
-        description: String(error), 
+        description: error.message || "An unknown error occurred", 
         variant: "destructive" 
       });
     },
@@ -88,7 +125,23 @@ export default function PCIDSSGapAssessment() {
 
   // Calculate statistics
   const stats = calculateCompletionStats(assessmentData);
-  const requirementGroups = getRequirementGroups();
+  
+  // Calculate requirement groups dynamically based on current assessmentData
+  const requirementGroups = React.useMemo(() => {
+    const groups: { [key: string]: PCIDSSAssessment[] } = {};
+    
+    assessmentData.forEach(req => {
+      const mainReq = req.requirement.split('.')[0];
+      const groupName = `Requirement ${mainReq}`;
+      
+      if (!groups[groupName]) {
+        groups[groupName] = [];
+      }
+      groups[groupName].push(req);
+    });
+    
+    return groups;
+  }, [assessmentData]);
 
   // Filter assessments by selected requirement
   const filteredAssessments = selectedRequirement === 'all'

@@ -9,6 +9,7 @@ const router = Router();
 
 // Schema for PCI DSS assessment
 const pciDssAssessmentSchema = z.object({
+  id: z.number().optional(), // Frontend uses numeric IDs
   requirement: z.string(),
   subRequirement: z.string().optional(),
   description: z.string(),
@@ -17,6 +18,7 @@ const pciDssAssessmentSchema = z.object({
   task: z.string().optional(),
   completionDate: z.string().optional(),
   comments: z.string().optional(),
+  isHeader: z.boolean().optional(), // Frontend includes header rows
 });
 
 // Get all PCI DSS assessments for an organization
@@ -43,11 +45,35 @@ router.get("/:organizationId/pci-dss-assessments", isAuthenticated, async (req, 
       return res.status(403).json({ message: "Access denied" });
     }
 
-    const assessments = await db
+    const savedAssessments = await db
       .select()
       .from(pciDssAssessments)
       .where(eq(pciDssAssessments.organizationId, organizationId))
       .orderBy(pciDssAssessments.requirement);
+
+    console.log(`Found ${savedAssessments.length} saved assessments for organization ${organizationId}`);
+
+    // Convert saved assessments to a map for easy lookup
+    const savedAssessmentMap = new Map();
+    savedAssessments.forEach(assessment => {
+      savedAssessmentMap.set(assessment.requirement, {
+        id: assessment.id,
+        requirement: assessment.requirement,
+        subRequirement: assessment.subRequirement,
+        description: assessment.description,
+        status: assessment.status,
+        owner: assessment.owner,
+        task: assessment.task,
+        completionDate: assessment.completionDate,
+        comments: assessment.comments,
+        isHeader: false,
+      });
+    });
+
+    // Import the default PCI DSS requirements structure
+    // Note: We'll need to import this properly or duplicate the structure
+    // For now, we'll return the saved assessments and let frontend handle merging
+    const assessments = Array.from(savedAssessmentMap.values());
 
     res.json(assessments);
   } catch (error) {
@@ -86,30 +112,38 @@ router.post("/:organizationId/pci-dss-assessments", isAuthenticated, async (req,
     }
 
     const { assessments } = req.body;
+    console.log("Received assessments:", JSON.stringify(assessments, null, 2));
+    
     const validatedAssessments = z.array(pciDssAssessmentSchema).parse(assessments);
+    
+    // Filter out header rows (isHeader: true) and only save actual requirements
+    const assessmentsToSave = validatedAssessments.filter(assessment => !assessment.isHeader);
+    
+    console.log(`Saving ${assessmentsToSave.length} assessments (filtered from ${validatedAssessments.length})`);
 
     // Delete existing assessments for this organization
     await db.delete(pciDssAssessments).where(eq(pciDssAssessments.organizationId, organizationId));
 
-    // Insert new assessments
-    const assessmentsToInsert = validatedAssessments.map((assessment, index) => ({
-      id: undefined, // Let database generate UUID
-      organizationId,
-      requirement: assessment.requirement,
-      subRequirement: assessment.subRequirement || null,
-      description: assessment.description,
-      status: assessment.status,
-      owner: assessment.owner || null,
-      task: assessment.task || null,
-      completionDate: assessment.completionDate || null,
-      comments: assessment.comments || null,
-      createdBy: userId,
-      updatedBy: userId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }));
+    // Insert new assessments (only non-header items)
+    if (assessmentsToSave.length > 0) {
+      const assessmentsToInsert = assessmentsToSave.map((assessment) => ({
+        organizationId,
+        requirement: assessment.requirement,
+        subRequirement: assessment.subRequirement || null,
+        description: assessment.description,
+        status: assessment.status,
+        owner: assessment.owner || null,
+        task: assessment.task || null,
+        completionDate: assessment.completionDate || null,
+        comments: assessment.comments || null,
+        createdBy: userId,
+        updatedBy: userId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }));
 
-    await db.insert(pciDssAssessments).values(assessmentsToInsert);
+      await db.insert(pciDssAssessments).values(assessmentsToInsert);
+    }
 
     res.json({ message: "PCI DSS assessments saved successfully" });
   } catch (error) {
