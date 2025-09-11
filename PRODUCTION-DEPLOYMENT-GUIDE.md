@@ -13,13 +13,26 @@ This deployment includes fixes for:
 
 ## Post-Deployment Steps
 
-### 1. Activate PCI DSS Framework (REQUIRED)
-Run this command on the production server to enable PCI DSS functionality:
+### 1. Fix Database Schema (REQUIRED FOR SAVING)
+The production database is missing the `is_header` column. Run this script to fix it:
 
 ```bash
 # Navigate to the project directory
 cd /path/to/your/grc-manager
 
+# Fix the database schema
+npx tsx scripts/fix-production-pci-dss-schema.ts
+```
+
+This script will:
+- Add the missing `is_header` column to `pci_dss_assessments` table
+- Verify table structure compatibility
+- Enable assessment saving functionality
+
+### 2. Activate PCI DSS Framework (REQUIRED)
+Run this command on the production server to enable PCI DSS functionality:
+
+```bash
 # Run the activation script
 npx tsx scripts/activate-pci-dss-framework.ts
 ```
@@ -29,13 +42,13 @@ This script will:
 - Link it to the Default Organization with `isActive: true`
 - Enable the PCI DSS gap assessment in the sidebar navigation
 
-### 2. Verify Framework Activation
-After running the script, you should see:
+### 3. Verify Framework Activation
+After running both scripts, you should see:
 - "PCI DSS Gap Assessment" appears in the left sidebar navigation
 - Dashboard shows "1 active framework" instead of "0 active frameworks"
 - Users can access `/pci-dss-gap-assessment` page without errors
 
-### 3. Test PCI DSS Assessment Features
+### 4. Test PCI DSS Assessment Features
 1. **Navigate to PCI DSS Gap Assessment**
    - Should load without errors
    - Should display all 12 requirements with sub-requirements
@@ -69,6 +82,12 @@ After running the script, you should see:
 - **Result**: PCI DSS assessment becomes accessible in navigation
 
 ## Troubleshooting
+
+### If PCI DSS Assessment saving fails:
+1. **Check database schema**: Run `npx tsx scripts/fix-production-pci-dss-schema.ts`
+2. **Check browser console**: Look for "Invalid assessment data" or schema validation errors
+3. **Check backend logs**: Look for "ZodError" or "is_header" field errors
+4. **Verify database**: Ensure `pci_dss_assessments` table has `is_header` column
 
 ### If PCI DSS Assessment not visible in sidebar:
 1. Check framework activation: `SELECT * FROM organization_frameworks WHERE is_active = true;`
