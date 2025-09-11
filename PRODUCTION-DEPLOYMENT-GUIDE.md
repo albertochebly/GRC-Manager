@@ -13,20 +13,34 @@ This deployment includes fixes for:
 
 ## Post-Deployment Steps
 
-### 1. Fix Database Schema (REQUIRED FOR SAVING)
-The production database is missing the `is_header` column. Run this script to fix it:
+### 1. Run Database Migrations (REQUIRED FOR SAVING)
+Your production database is missing the PCI DSS assessments table. Run the migrations:
 
+**Option A: Using Drizzle Push (Recommended)**
 ```bash
 # Navigate to the project directory
 cd /path/to/your/grc-manager
 
-# Fix the database schema
+# Push schema to database (creates missing tables)
+npm run db:push
+```
+
+**Option B: Using Migration Script**
+```bash
+# Run the migration script
+npx tsx scripts/run-production-migrations.ts
+```
+
+**Option C: Manual Migration (if above fail)**
+```bash
+# Run the custom schema fix script
 npx tsx scripts/fix-production-pci-dss-schema.ts
 ```
 
-This script will:
-- Add the missing `is_header` column to `pci_dss_assessments` table
-- Verify table structure compatibility
+These will:
+- Create the `pci_dss_assessments` table with correct schema
+- Add the required `is_header` column
+- Set up all foreign key relationships
 - Enable assessment saving functionality
 
 ### 2. Activate PCI DSS Framework (REQUIRED)
@@ -84,10 +98,11 @@ After running both scripts, you should see:
 ## Troubleshooting
 
 ### If PCI DSS Assessment saving fails:
-1. **Check database schema**: Run `npx tsx scripts/fix-production-pci-dss-schema.ts`
-2. **Check browser console**: Look for "Invalid assessment data" or schema validation errors
-3. **Check backend logs**: Look for "ZodError" or "is_header" field errors
-4. **Verify database**: Ensure `pci_dss_assessments` table has `is_header` column
+1. **Check if table exists**: Run `npm run db:push` to create missing tables
+2. **Check database schema**: Verify `pci_dss_assessments` table has `is_header` column
+3. **Check browser console**: Look for "Invalid assessment data" or schema validation errors
+4. **Check backend logs**: Look for "ZodError" or table/column not found errors
+5. **Manual verification**: Run `npx tsx scripts/fix-production-pci-dss-schema.ts`
 
 ### If PCI DSS Assessment not visible in sidebar:
 1. Check framework activation: `SELECT * FROM organization_frameworks WHERE is_active = true;`
