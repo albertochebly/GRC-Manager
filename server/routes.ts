@@ -40,6 +40,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Mount routes
   app.use('/api/users', userRoutes);
+  app.use('/api/organizations', userRoutes); // Mount user routes under organizations for org-specific endpoints
   app.use('/api/organizations', organizationRoutes);
   app.use('/api/organizations', documentRoutes);
   app.use('/api/organizations', riskRoutes);

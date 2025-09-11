@@ -65,13 +65,14 @@ export default function Users() {
       return response.json();
     },
     onSuccess: () => {
+      // Invalidate user queries to ensure real-time updates
+      queryClient.invalidateQueries({ queryKey: ["/api/organizations", selectedOrganizationId, "users"] });
       toast({
         title: "Success",
         description: "User created successfully",
       });
       setIsDialogOpen(false);
       reset();
-      queryClient.invalidateQueries({ queryKey: ["/api/organizations", selectedOrganizationId, "users"] });
     },
     onError: (error: Error) => {
       toast({
@@ -122,29 +123,13 @@ export default function Users() {
   }, [selectedUser, editReset]);
 
   // Get organization users
-  const { data: users = [] } = useQuery({
-    queryKey: ["/api/organizations", selectedOrganizationId, "users"],
-    enabled: isAuthenticated && !isLoading && !!selectedOrganizationId,
-    retry: (failureCount, error) => {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return false;
-      }
-      return failureCount < 3;
-    },
-  });
-
-  // Get organization users
   const { data: orgUsers = [], isLoading: usersLoading } = useQuery<any[]>({
     queryKey: ["/api/organizations", selectedOrganizationId, "users"],
-    enabled: !!selectedOrganizationId,
+    enabled: isAuthenticated && !isLoading && !!selectedOrganizationId,
+    staleTime: 1 * 60 * 1000, // 1 minute for real-time updates
+    gcTime: 2 * 60 * 1000, // 2 minutes cache time
+    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window gains focus
     queryFn: async () => {
       try {
         console.log('Fetching users for org:', selectedOrganizationId);
@@ -162,6 +147,14 @@ export default function Users() {
     },
     retry: (failureCount, error) => {
       if (isUnauthorizedError(error as Error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
         return false;
       }
       return failureCount < 3;
@@ -203,13 +196,14 @@ export default function Users() {
       return result;
     },
     onSuccess: () => {
+      // Invalidate user queries to ensure real-time updates
+      queryClient.invalidateQueries({ queryKey: ["/api/organizations", selectedOrganizationId, "users"] });
       toast({
         title: "Success",
         description: "User updated successfully",
       });
       setIsEditDialogOpen(false);
       setSelectedUser(null);
-      queryClient.invalidateQueries({ queryKey: ["/api/organizations", selectedOrganizationId, "users"] });
     },
     onError: (error: Error) => {
       toast({
@@ -238,14 +232,8 @@ export default function Users() {
       return { userId };
     },
     onSuccess: (data) => {
-      // Update the cache directly instead of invalidating to avoid refetch
-      queryClient.setQueryData(
-        ["/api/organizations", selectedOrganizationId, "users"],
-        (oldData: any) => {
-          if (!oldData) return oldData;
-          return oldData.filter((user: any) => user.user.id !== data.userId);
-        }
-      );
+      // Invalidate user queries to ensure real-time updates
+      queryClient.invalidateQueries({ queryKey: ["/api/organizations", selectedOrganizationId, "users"] });
       
       toast({
         title: "Success",
