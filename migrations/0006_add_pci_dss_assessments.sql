@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS "pci_dss_assessments" (
 	"requirement" varchar(10) NOT NULL,
 	"sub_requirement" varchar(10),
 	"description" text NOT NULL,
+	"is_header" boolean DEFAULT false,
 	"status" varchar(20) DEFAULT 'not-applied' NOT NULL,
 	"owner" varchar(100),
 	"task" text,
