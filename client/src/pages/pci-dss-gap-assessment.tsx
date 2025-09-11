@@ -22,6 +22,7 @@ import {
   type PCIDSSAssessment 
 } from "@/data/pciDssAssessmentData";
 import { CalendarDays, FileText, Users, CheckCircle, Clock, AlertCircle, Save, Download } from "lucide-react";
+import * as XLSX from 'xlsx';
 
 export default function PCIDSSGapAssessment() {
   const { toast } = useToast();
@@ -162,31 +163,152 @@ export default function PCIDSSGapAssessment() {
     }
   }
 
-  // Export to CSV
-  const exportToCSV = () => {
-    const headers = ['Requirement', 'Description', 'Status', 'Owner', 'Task', 'Completion Date', 'Comments'];
-    // Only export non-header items
-    const nonHeaderItems = assessmentData.filter(item => !item.isHeader);
-    const csvContent = [
-      headers.join(','),
-      ...nonHeaderItems.map(item => [
-        `"${item.requirement}"`,
-        `"${item.description.replace(/"/g, '""')}"`,
-        `"${item.status}"`,
-        `"${item.owner || ''}"`,
-        `"${item.task || ''}"`,
-        `"${item.completionDate || ''}"`,
-        `"${item.comments || ''}"`
-      ].join(','))
-    ].join('\n');
+  // Export to Excel with dashboard metrics and separate sheets
+  const exportToExcel = () => {
+    const wb = XLSX.utils.book_new();
     
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `pci-dss-gap-assessment-${selectedOrganization?.name || 'organization'}-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
+    // Overall Dashboard Sheet
+    const overallStats = calculateCompletionStats(assessmentData);
+    const dashboardData = [
+      ['PCI DSS v4.0.1 Gap Assessment Dashboard'],
+      ['Organization:', selectedOrganization?.name || 'Not Selected'],
+      ['Export Date:', new Date().toLocaleDateString()],
+      [''],
+      ['Overall Statistics:'],
+      ['Total Requirements:', overallStats.total],
+      ['Completed:', overallStats.completed],
+      ['In Progress:', overallStats.inProgress],
+      ['Not Applied:', overallStats.notApplied],
+      ['Completion Percentage:', `${overallStats.completionPercentage}%`],
+      ['Progress Percentage:', `${overallStats.progressPercentage}%`],
+      [''],
+      ['Requirement Groups Summary:']
+    ];
+    
+    // Add requirement group statistics to dashboard
+    Object.entries(requirementGroups).forEach(([groupName, requirements]) => {
+      const groupStats = calculateCompletionStats(requirements);
+      const reqNum = groupName.replace('Requirement ', '');
+      const groupTitle = requirements.find(r => r.requirement === reqNum)?.description || groupName;
+      dashboardData.push([
+        `${reqNum}:`,
+        groupTitle,
+        `${groupStats.completed}/${groupStats.total} completed`,
+        `${groupStats.completionPercentage}%`
+      ]);
+    });
+
+    const dashboardWs = XLSX.utils.aoa_to_sheet(dashboardData);
+    
+    // Style the dashboard sheet
+    dashboardWs['!cols'] = [{ wch: 20 }, { wch: 40 }, { wch: 20 }, { wch: 15 }];
+    
+    XLSX.utils.book_append_sheet(wb, dashboardWs, 'Dashboard');
+
+    // Create a sheet for each main requirement (1-12)
+    const mainRequirements = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+    
+    mainRequirements.forEach(reqNum => {
+      const requirementItems = assessmentData.filter(a => 
+        a.requirement.startsWith(reqNum + '.') || a.requirement === reqNum
+      );
+      
+      if (requirementItems.length > 0) {
+        // Calculate stats for this requirement
+        const reqStats = calculateCompletionStats(requirementItems);
+        const reqTitle = requirementItems.find(a => a.requirement === reqNum)?.description || 
+                        `Requirement ${reqNum}`;
+        
+        // Create sheet data with dashboard at the top
+        const sheetData = [
+          [`Requirement ${reqNum}: ${reqTitle}`],
+          [''],
+          ['Dashboard:'],
+          ['Total Items:', reqStats.total],
+          ['Completed:', reqStats.completed],
+          ['In Progress:', reqStats.inProgress],
+          ['Not Applied:', reqStats.notApplied],
+          ['Completion Rate:', `${reqStats.completionPercentage}%`],
+          ['Progress Rate:', `${reqStats.progressPercentage}%`],
+          [''],
+          ['Details:'],
+          ['Requirement', 'Sub-Requirement', 'Description', 'Status', 'Owner', 'Task', 'Completion Date', 'Comments']
+        ];
+        
+        // Add requirement details
+        const nonHeaderItems = requirementItems.filter(item => !item.isHeader);
+        nonHeaderItems.forEach(item => {
+          const csvRow = [
+            item.requirement || '',
+            item.subRequirement || '',
+            (item.description || '').replace(/"/g, '""'),
+            item.status || '',
+            item.owner || '',
+            item.task || '',
+            item.completionDate || '',
+            (item.comments || '').replace(/"/g, '""')
+          ];
+          sheetData.push(csvRow);
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet(sheetData);
+        
+        // Auto-size columns
+        ws['!cols'] = [
+          { wch: 12 }, // Requirement
+          { wch: 15 }, // Sub-Requirement
+          { wch: 60 }, // Description
+          { wch: 12 }, // Status
+          { wch: 15 }, // Owner
+          { wch: 30 }, // Task
+          { wch: 15 }, // Completion Date
+          { wch: 30 }  // Comments
+        ];
+        
+        XLSX.utils.book_append_sheet(wb, ws, `Requirement ${reqNum}`);
+      }
+    });
+
+    // Create a comprehensive data sheet with all non-header items
+    const allData = [
+      ['PCI DSS v4.0.1 Complete Assessment Data'],
+      [''],
+      ['Requirement', 'Sub-Requirement', 'Description', 'Status', 'Owner', 'Task', 'Completion Date', 'Comments']
+    ];
+    
+    const allNonHeaderItems = assessmentData.filter(item => !item.isHeader);
+    allNonHeaderItems.forEach(item => {
+      const csvRow = [
+        item.requirement || '',
+        item.subRequirement || '',
+        (item.description || '').replace(/"/g, '""'),
+        item.status || '',
+        item.owner || '',
+        item.task || '',
+        item.completionDate || '',
+        (item.comments || '').replace(/"/g, '""')
+      ];
+      allData.push(csvRow);
+    });
+
+    const allDataWs = XLSX.utils.aoa_to_sheet(allData);
+    allDataWs['!cols'] = [
+      { wch: 12 }, // Requirement
+      { wch: 15 }, // Sub-Requirement
+      { wch: 60 }, // Description
+      { wch: 12 }, // Status
+      { wch: 15 }, // Owner
+      { wch: 30 }, // Task
+      { wch: 15 }, // Completion Date
+      { wch: 30 }  // Comments
+    ];
+    
+    XLSX.utils.book_append_sheet(wb, allDataWs, 'All Data');
+
+    // Save the file
+    const orgName = selectedOrganization?.name ? `_${selectedOrganization.name.replace(/[^a-zA-Z0-9]/g, '_')}` : '';
+    const fileName = `PCI_DSS_Gap_Assessment${orgName}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, fileName);
   };
 
   if (isLoading) {
@@ -209,9 +331,9 @@ export default function PCIDSSGapAssessment() {
               <p className="text-gray-600 mt-2">Track compliance progress against PCI DSS requirements</p>
             </div>
             <div className="flex space-x-2">
-              <Button variant="outline" onClick={exportToCSV}>
+              <Button variant="outline" onClick={exportToExcel}>
                 <Download className="w-4 h-4 mr-2" />
-                Export CSV
+                Export Excel
               </Button>
               {canEditAssessments && (
                 <Button 
