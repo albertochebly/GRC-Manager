@@ -234,6 +234,27 @@ export const maturityAssessments = pgTable("maturity_assessments", {
   unique().on(table.organizationId, table.standardRef)
 ]);
 
+// PCI DSS assessments
+export const pciDssAssessments = pgTable("pci_dss_assessments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  requirement: varchar("requirement", { length: 10 }).notNull(),
+  subRequirement: varchar("sub_requirement", { length: 10 }),
+  description: text("description").notNull(),
+  isHeader: boolean("is_header").default(false),
+  status: varchar("status", { length: 20 }).notNull().default("not-applied"), // completed, in-progress, not-applied
+  owner: varchar("owner", { length: 100 }),
+  task: text("task"),
+  completionDate: varchar("completion_date", { length: 20 }),
+  comments: text("comments"),
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+  updatedBy: varchar("updated_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  unique().on(table.organizationId, table.requirement)
+]);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   organizationUsers: many(organizationUsers),
@@ -352,6 +373,9 @@ export type Approval = typeof approvals.$inferSelect;
 
 export type InsertMaturityAssessment = typeof maturityAssessments.$inferInsert;
 export type MaturityAssessment = typeof maturityAssessments.$inferSelect;
+
+export type InsertPCIDSSAssessment = typeof pciDssAssessments.$inferInsert;
+export type PCIDSSAssessment = typeof pciDssAssessments.$inferSelect;
 
 // Zod schemas
 // Temporarily disabled due to TypeScript errors

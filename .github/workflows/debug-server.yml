@@ -1,0 +1,39 @@
+name: Debug Server Status
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check Server Status
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.VM_IP }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.AUDITALIGN_DEPLOY_KEY }}
+        port: ${{ secrets.PORT_SSH }}
+        script: |
+          echo "=== PM2 Status ==="
+          pm2 status
+          
+          echo "=== PM2 Logs (last 20 lines) ==="
+          pm2 logs auditalign --lines 20 --nostream
+          
+          echo "=== Port 3000 Status ==="
+          netstat -tlnp | grep :3000 || echo "Port 3000 not listening"
+          
+          echo "=== Environment Check ==="
+          cd /opt/auditalign
+          ls -la .env* || echo "No environment files found"
+          
+          echo "=== Application Directory ==="
+          ls -la /opt/auditalign/
+          
+          echo "=== Test Local Connection ==="
+          curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 || echo "Connection failed"
+          
+          echo "=== Manual Application Start Test ==="
+          cd /opt/auditalign
+          timeout 10s node dist/index.js || echo "Application failed to start"

@@ -9,7 +9,8 @@ import {
   Clipboard, 
   Upload, 
   Users,
-  BarChart3
+  BarChart3,
+  CreditCard
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganizations } from "@/hooks/useOrganizations";
@@ -24,6 +25,7 @@ export default function Sidebar() {
   { name: "Documents", href: "/documents", icon: FileText },
   { name: "Risk Register", href: "/risk-register", icon: AlertTriangle },
   { name: "ISO27001 GAP Assessment", href: "/maturity-assessment", icon: BarChart3 },
+  { name: "PCI DSS GAP Assessment", href: "/pci-dss-gap-assessment", icon: CreditCard },
   { name: "Frameworks", href: "/frameworks", icon: Clipboard },
   { name: "Users & Roles", href: "/users", icon: Users },
   ];
@@ -32,13 +34,14 @@ export default function Sidebar() {
   const getFilteredNavigation = () => {
     const userRole = selectedOrganization?.role;
     
-    // For contributor, approver, and read-only roles, only show Dashboard, Documents, Risk Register, and Maturity Assessment
+    // For contributor, approver, and read-only roles, only show Dashboard, Documents, Risk Register, and Assessment pages
     if (userRole === "contributor" || userRole === "approver" || userRole === "read-only") {
       return navigation.filter(item => 
         item.href === "/dashboard" || 
         item.href === "/documents" || 
         item.href === "/risk-register" ||
-        item.href === "/maturity-assessment"
+        item.href === "/maturity-assessment" ||
+        item.href === "/pci-dss-gap-assessment"
       );
     }
     

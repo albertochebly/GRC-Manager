@@ -6,6 +6,7 @@ import documentRoutes from "./routes/documents";
 import riskRoutes from "./routes/risks";
 import frameworkRoutes from "./routes/frameworks";
 import maturityAssessmentRoutes from "./routes/maturity-assessments";
+import pciDssAssessmentRoutes from "./routes/pci-dss-assessments";
 
 console.log('Routes imported successfully:', {
   userRoutes: !!userRoutes,
@@ -13,7 +14,8 @@ console.log('Routes imported successfully:', {
   documentRoutes: !!documentRoutes,
   riskRoutes: !!riskRoutes,
   frameworkRoutes: !!frameworkRoutes,
-  maturityAssessmentRoutes: !!maturityAssessmentRoutes
+  maturityAssessmentRoutes: !!maturityAssessmentRoutes,
+  pciDssAssessmentRoutes: !!pciDssAssessmentRoutes
 });
 
 // Extend Express Request type to include user
@@ -36,29 +38,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/frameworks", frameworkRoutes);
   console.log('Framework routes mounted at /api/frameworks');
   
-  // Mount the routes
-  app.use("/api/organizations", organizationRoutes);
-  console.log('Organization routes mounted at /api/organizations');
-  
-  // Mount document routes under /api/organizations
-  app.use("/api/organizations", documentRoutes);
-  console.log('Document routes mounted at /api/organizations');
-  
-  // Mount risk routes under /api/organizations
-  app.use("/api/organizations", riskRoutes);
-  console.log('Risk routes mounted at /api/organizations');
-  
-  // Mount framework routes under /api/organizations
-  app.use("/api/organizations", frameworkRoutes);
-  console.log('Organization framework routes mounted at /api/organizations');
-  
-  // Mount user routes under /api/organizations/:orgId/users
-  app.use("/api/organizations", userRoutes);
-  console.log('User routes mounted at /api/organizations');
-  
-  // Mount maturity assessment routes under /api/organizations
-  app.use("/api/organizations", maturityAssessmentRoutes);
-  console.log('Maturity assessment routes mounted at /api/organizations');
+    // Mount routes
+  app.use('/api/users', userRoutes);
+  app.use('/api/organizations', organizationRoutes);
+  app.use('/api/organizations', documentRoutes);
+  app.use('/api/organizations', riskRoutes);
+  app.use('/api/frameworks', frameworkRoutes);
+  app.use('/api/organizations', maturityAssessmentRoutes);
+  app.use('/api/organizations', pciDssAssessmentRoutes);
 
   // Create and return the HTTP server
   const httpServer = createServer(app);

@@ -16,6 +16,7 @@ import Frameworks from "@/pages/frameworks";
 import ImportExport from "@/pages/import-export";
 import Users from "@/pages/users";
 import MaturityAssessment from "@/pages/maturity-assessment";
+import PCIDSSGapAssessment from "@/pages/pci-dss-gap-assessment";
 // ...existing code...
 
 interface ProtectedRouteProps {
@@ -66,6 +67,7 @@ function App() {
         <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
         <Route path="/risk-register" element={<ProtectedRoute><RiskRegister /></ProtectedRoute>} />
         <Route path="/maturity-assessment" element={<ProtectedRoute><MaturityAssessment /></ProtectedRoute>} />
+        <Route path="/pci-dss-gap-assessment" element={<ProtectedRoute><PCIDSSGapAssessment /></ProtectedRoute>} />
         
         {/* Admin-only routes */}
         <Route 
