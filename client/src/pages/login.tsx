@@ -68,36 +68,34 @@ export default function LoginPage() {
         {/* Left Side - Branding */}
         <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 to-slate-800 relative overflow-hidden h-full">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-purple-900/20"></div>
-          <div className="relative z-10 flex flex-col justify-center px-12 text-white h-full">
-            <div className="flex items-center justify-between max-w-full">
-              {/* Text Content */}
-              <div className="flex-1 pr-8">
-                <h1 className="text-4xl font-light mb-6 leading-tight">
-                  Enterprise Governance,<br />
-                  Risk & Compliance
-                </h1>
-                <p className="text-xl text-slate-300 font-light leading-relaxed mb-8">
-                  Streamline your organization's risk management and compliance processes with enterprise-grade solutions.
-                </p>
-                <div className="flex items-center space-x-4 text-sm text-slate-400">
-                  <span className="flex items-center">
-                    <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-                    ISO 27001
-                  </span>
-                  <span className="flex items-center">
-                    <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-                    PCI DSS
-                  </span>
-                </div>
-              </div>
-              
-              {/* George Logo */}
-              <div className="flex-shrink-0">
-                <img 
-                  src="/george.png" 
-                  alt="George" 
-                  className="h-80 w-auto opacity-90"
-                />
+          <div className="relative z-10 flex flex-col justify-center items-center px-12 text-white h-full text-center ml-16 -mt-8">
+            {/* George Logo */}
+            <div className="mb-8">
+              <img 
+                src="/george.png" 
+                alt="George" 
+                className="h-80 w-auto opacity-90"
+              />
+            </div>
+            
+            {/* Text Content */}
+            <div className="max-w-lg">
+              <h1 className="text-4xl font-light mb-6 leading-tight">
+                Enterprise Governance,<br />
+                Risk & Compliance
+              </h1>
+              <p className="text-xl text-slate-300 font-light leading-relaxed mb-8">
+                Streamline your organization's risk management and compliance processes with enterprise-grade solutions.
+              </p>
+              <div className="flex items-center justify-center space-x-4 text-sm text-slate-400">
+                <span className="flex items-center">
+                  <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+                  ISO 27001
+                </span>
+                <span className="flex items-center">
+                  <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+                  PCI DSS
+                </span>
               </div>
             </div>
           </div>
