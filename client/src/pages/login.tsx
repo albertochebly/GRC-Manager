@@ -88,14 +88,6 @@ export default function LoginPage() {
                 Streamline your organization's risk management and compliance processes with enterprise-grade solutions.
               </p>
               <div className="flex items-center justify-center space-x-4 text-sm text-slate-400">
-                <span className="flex items-center">
-                  <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-                  ISO 27001
-                </span>
-                <span className="flex items-center">
-                  <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-                  PCI DSS
-                </span>
               </div>
             </div>
           </div>
