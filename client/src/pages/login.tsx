@@ -1,9 +1,7 @@
 import { useState } from "react";
-import { Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -64,71 +62,137 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="w-full max-w-md px-4">
-        <div className="mb-8 text-center">
-          <div className="flex justify-center mb-4">
-            <Shield className="h-12 w-12 text-primary" />
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex">
+        {/* Left Side - Branding */}
+        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 to-slate-800 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-purple-900/20"></div>
+          <div className="relative z-10 flex flex-col justify-center px-12 text-white">
+            <div className="flex items-center justify-between max-w-full">
+              {/* Text Content */}
+              <div className="flex-1 pr-8">
+                <h1 className="text-4xl font-light mb-6 leading-tight">
+                  Enterprise Governance,<br />
+                  Risk & Compliance
+                </h1>
+                <p className="text-xl text-slate-300 font-light leading-relaxed mb-8">
+                  Streamline your organization's risk management and compliance processes with enterprise-grade solutions.
+                </p>
+                <div className="flex items-center space-x-4 text-sm text-slate-400">
+                  <span className="flex items-center">
+                    <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+                    ISO 27001
+                  </span>
+                  <span className="flex items-center">
+                    <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+                    PCI DSS
+                  </span>
+                </div>
+              </div>
+              
+              {/* George Logo */}
+              <div className="flex-shrink-0">
+                <img 
+                  src="/george.png" 
+                  alt="George" 
+                  className="h-64 w-auto opacity-90"
+                />
+              </div>
+            </div>
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">Welcome to AuditAlign</h2>
-          <p className="text-gray-600">Sign in to manage your GRC processes</p>
+          
+          {/* Decorative Elements */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full transform translate-x-32 -translate-y-32"></div>
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-500/5 to-blue-500/5 rounded-full transform -translate-x-48 translate-y-48"></div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Sign In</CardTitle>
-            <CardDescription>
-              Enter your credentials to access your account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
+        {/* Right Side - Login Form */}
+        <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-16 min-h-screen">
+          <div className="w-full max-w-md">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-light text-gray-900 mb-2">
+                Sign In
+              </h2>
+              <p className="text-gray-600 font-light">
+                Access your GRC management platform
+              </p>
+            </div>
+
+            {/* Login Form */}
+            <form onSubmit={handleLogin} className="space-y-8">
               {error && (
-                <div className="p-3 text-sm text-red-500 bg-red-50 border border-red-200 rounded-md">
-                  {error}
+                <div className="bg-red-50 border-l-4 border-red-400 p-4">
+                  <div className="text-sm text-red-700">{error}</div>
                 </div>
               )}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+              
+              <div className="space-y-1">
+                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                  Email Address
+                </Label>
                 <Input
                   id="email"
                   name="email"
                   type="email"
-                  placeholder="name@company.com"
+                  placeholder="Enter your email address"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={isLoading}
                   data-testid="input-email"
                   autoComplete="username"
+                  className="h-12 px-4 border-gray-300 focus:outline-none focus:ring-2 focus:ring-opacity-50"
+                  style={{ '--tw-ring-color': '#3C4279' } as React.CSSProperties}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+              
+              <div className="space-y-1">
+                <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                  Password
+                </Label>
                 <Input
                   id="password"
                   name="password"
                   type="password"
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={isLoading}
                   data-testid="input-password"
                   autoComplete="current-password"
+                  className="h-12 px-4 border-gray-300 focus:outline-none focus:ring-2 focus:ring-opacity-50"
+                  style={{ '--tw-ring-color': '#3C4279' } as React.CSSProperties}
                 />
               </div>
+
               <Button
                 type="submit"
-                className="w-full"
-                size="lg"
+                className="w-full h-12 text-white font-medium transition-colors duration-200 hover:opacity-90"
+                style={{ backgroundColor: '#3C4279' }}
                 disabled={isLoading}
                 data-testid="button-sign-in"
               >
-                {isLoading ? "Signing in..." : "Sign In"}
+                {isLoading ? "Signing In..." : "Sign In"}
               </Button>
             </form>
-          </CardContent>
-        </Card>
+
+            {/* Footer Links */}
+            <div className="mt-12 text-center">
+              <p className="text-xs text-gray-500">
+                Protected by enterprise-grade security<br />
+                <span className="text-gray-400">© 2024 AuditAlign. All rights reserved.</span>
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

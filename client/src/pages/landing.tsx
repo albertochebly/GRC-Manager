@@ -9,15 +9,25 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #F8F9FD, #F0F2F8)' }}>
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center relative">
             <div className="flex items-center space-x-3">
               <Shield className="h-8 w-8 text-primary" />
               <h1 className="text-2xl font-bold text-gray-900">GRC Manager</h1>
             </div>
+            
+            {/* ANAT Security Logo in Center */}
+            <div className="absolute left-1/2 transform -translate-x-1/2">
+              <img 
+                src="/anat_security_secondary_logotype_gold_RGB[1].png" 
+                alt="ANAT Security" 
+                className="h-52 w-auto"
+              />
+            </div>
+            
             <Button onClick={handleSignIn} data-testid="button-login">
               Sign In
             </Button>
