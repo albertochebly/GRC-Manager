@@ -62,19 +62,13 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-        </div>
-      </header>
-
+    <div className="h-screen bg-white overflow-hidden">
       {/* Main Content */}
-      <div className="flex">
+      <div className="flex h-full">
         {/* Left Side - Branding */}
-        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 to-slate-800 relative overflow-hidden">
+        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 to-slate-800 relative overflow-hidden h-full">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-purple-900/20"></div>
-          <div className="relative z-10 flex flex-col justify-center px-12 text-white">
+          <div className="relative z-10 flex flex-col justify-center px-12 text-white h-full">
             <div className="flex items-center justify-between max-w-full">
               {/* Text Content */}
               <div className="flex-1 pr-8">
@@ -102,7 +96,7 @@ export default function LoginPage() {
                 <img 
                   src="/george.png" 
                   alt="George" 
-                  className="h-64 w-auto opacity-90"
+                  className="h-80 w-auto opacity-90"
                 />
               </div>
             </div>
@@ -114,9 +108,9 @@ export default function LoginPage() {
         </div>
 
         {/* Right Side - Login Form */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-16 min-h-screen">
+        <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-8 h-full">
           <div className="w-full max-w-md">
-            <div className="text-center mb-12">
+            <div className="text-center mb-8">
               <h2 className="text-3xl font-light text-gray-900 mb-2">
                 Sign In
               </h2>
@@ -126,7 +120,7 @@ export default function LoginPage() {
             </div>
 
             {/* Login Form */}
-            <form onSubmit={handleLogin} className="space-y-8">
+            <form onSubmit={handleLogin} className="space-y-6">
               {error && (
                 <div className="bg-red-50 border-l-4 border-red-400 p-4">
                   <div className="text-sm text-red-700">{error}</div>
@@ -185,10 +179,10 @@ export default function LoginPage() {
             </form>
 
             {/* Footer Links */}
-            <div className="mt-12 text-center">
+            <div className="mt-8 text-center">
               <p className="text-xs text-gray-500">
                 Protected by enterprise-grade security<br />
-                <span className="text-gray-400">© 2024 AuditAlign. All rights reserved.</span>
+                <span className="text-gray-400">© 2025 AuditAlign. All rights reserved.</span>
               </p>
             </div>
           </div>
