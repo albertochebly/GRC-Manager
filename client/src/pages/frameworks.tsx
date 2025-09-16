@@ -424,7 +424,7 @@ export default function Frameworks() {
                         allFrameworks.map((framework: Framework) => (
                           <Card 
                             key={framework.id} 
-                            className={`transition-all ${isFrameworkActive(framework.id) ? 'ring-2 ring-green-500' : ''}`}
+                            className={`transition-all h-80 flex flex-col ${isFrameworkActive(framework.id) ? 'ring-2 ring-green-500' : ''}`}
                             data-testid={`card-framework-${framework.id}`}
                           >
                             <CardHeader className="pb-3">
@@ -438,9 +438,9 @@ export default function Frameworks() {
                               </div>
                               <Badge variant="outline">{framework.version}</Badge>
                             </CardHeader>
-                            <CardContent>
-                              <p className="text-sm text-gray-600 mb-4">{framework.description}</p>
-                              <div className="space-y-2">
+                            <CardContent className="flex-1 flex flex-col">
+                              <p className="text-sm text-gray-600 mb-4 flex-1 overflow-hidden">{framework.description}</p>
+                              <div className="space-y-2 mt-auto">
                                 <div className="flex space-x-2">
                                   <Dialog open={isControlsDialogOpen} onOpenChange={(open) => {
                                     setIsControlsDialogOpen(open);
@@ -549,7 +549,7 @@ export default function Frameworks() {
                         {orgFrameworks.map((framework: Framework) => (
                           <Card 
                             key={framework.id} 
-                            className="ring-2 ring-green-500"
+                            className="ring-2 ring-green-500 h-80 flex flex-col"
                             data-testid={`card-active-framework-${framework.id}`}
                           >
                             <CardHeader className="pb-3">
@@ -559,8 +559,8 @@ export default function Frameworks() {
                               </div>
                               <Badge variant="outline">{framework.version}</Badge>
                             </CardHeader>
-                            <CardContent>
-                              <p className="text-sm text-gray-600 mb-4">{framework.description}</p>
+                            <CardContent className="flex-1 flex flex-col">
+                              <p className="text-sm text-gray-600 mb-4 flex-1 overflow-hidden">{framework.description}</p>
                               <div className="space-y-2">
                                 <div className="flex justify-between text-sm">
                                   <span className="text-gray-600">Coverage:</span>
@@ -641,7 +641,7 @@ export default function Frameworks() {
                         {allFrameworks.map((framework: Framework) => (
                           <Card 
                             key={framework.id} 
-                            className="cursor-pointer hover:shadow-md transition-shadow"
+                            className="cursor-pointer hover:shadow-md transition-shadow h-64 flex flex-col"
                             onClick={() => {
                               setSelectedFrameworkForTemplates(framework);
                               setIsTemplatesDialogOpen(true);
@@ -652,9 +652,9 @@ export default function Frameworks() {
                               <CardTitle className="text-lg">{framework.name}</CardTitle>
                               <Badge variant="outline">{framework.version}</Badge>
                             </CardHeader>
-                            <CardContent>
-                              <p className="text-sm text-gray-600 mb-4">{framework.description}</p>
-                              <Button variant="outline" className="w-full" size="sm">
+                            <CardContent className="flex-1 flex flex-col">
+                              <p className="text-sm text-gray-600 mb-4 flex-1 overflow-hidden">{framework.description}</p>
+                              <Button variant="outline" className="w-full mt-auto" size="sm">
                                 <Settings className="w-4 h-4 mr-2" />
                                 Configure Templates
                               </Button>
@@ -687,7 +687,7 @@ export default function Frameworks() {
                         {allFrameworks.map((framework: Framework) => (
                           <Card 
                             key={framework.id} 
-                            className="cursor-pointer hover:shadow-md transition-shadow"
+                            className="cursor-pointer hover:shadow-md transition-shadow h-64 flex flex-col"
                             onClick={() => {
                               setSelectedFrameworkForControls(framework);
                               setIsControlsDialogOpen(true);
@@ -698,9 +698,9 @@ export default function Frameworks() {
                               <CardTitle className="text-lg">{framework.name}</CardTitle>
                               <Badge variant="outline">{framework.version}</Badge>
                             </CardHeader>
-                            <CardContent>
-                              <p className="text-sm text-gray-600 mb-4">{framework.description}</p>
-                              <Button variant="outline" className="w-full" size="sm">
+                            <CardContent className="flex-1 flex flex-col">
+                              <p className="text-sm text-gray-600 mb-4 flex-1 overflow-hidden">{framework.description}</p>
+                              <Button variant="outline" className="w-full mt-auto" size="sm">
                                 <Settings className="w-4 h-4 mr-2" />
                                 Manage Controls
                               </Button>

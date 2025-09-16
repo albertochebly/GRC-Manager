@@ -137,7 +137,7 @@ export default function Sidebar() {
               <div 
                 className={`flex items-center space-x-3 px-3 py-2 rounded-md transition-colors ${
                   active 
-                    ? "bg-blue-50 text-primary font-medium" 
+                    ? "bg-purple-50 text-primary font-medium" 
                     : "text-gray-700 hover:bg-gray-100"
                 }`}
                 data-testid={`nav-${item.href === "/dashboard" ? "dashboard" : item.href.substring(1).replace("/", "-")}`}
@@ -157,7 +157,7 @@ export default function Sidebar() {
             <div 
               className={`flex items-center space-x-3 px-3 py-2 rounded-md transition-colors ${
                 isActive("/organizations") 
-                  ? "bg-blue-50 text-primary font-medium" 
+                  ? "bg-purple-50 text-primary font-medium" 
                   : "text-gray-700 hover:bg-gray-100"
               }`}
               data-testid="nav-organizations"
@@ -171,7 +171,7 @@ export default function Sidebar() {
 
       {/* User Role Badge */}
       <div className="absolute bottom-4 left-4 right-4">
-        <div className="bg-blue-50 p-3 rounded-md">
+        <div className="bg-purple-50 p-3 rounded-md">
           <div className="text-xs font-medium text-gray-700">Current Role</div>
           <div className="text-sm font-semibold text-primary">
             {selectedOrganization?.role 
